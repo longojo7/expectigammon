@@ -13,50 +13,46 @@ class Board:
     def __init__(self):
         """Initialize the backgammon board state."""
         # 24 points on the board, use dicts for bar and bear off to track pieces on the bar and bear off
-        self.points = np.zeros(24, dtype=int)
-        self.bar = {1: 0, -1: 0} 
-        self.bear_off = {1: 0, -1: 0}
+        self.board = np.zeros(28, dtype=int)
         self.turn = 1 
 
     @classmethod
     def new_game(cls):
         """Create a board with in the initial state of a new game"""
         board = cls()
-        board.setup_pieces()
+        board.setup_board()
         return board
 
-    def setup_pieces(self):
+    def setup_board(self):
         """Set up the initial board state for backgammon."""
         # Place the pieces where white (player 1) is positive and black (player 2) is negative
-        self.points[0] = 2 
-        self.points[5] = -5
-        self.points[7] = -3
-        self.points[11] = 5
-        self.points[12] = -5
-        self.points[16] = 3
-        self.points[18] = 5
-        self.points[23] = -2
+        self.board[0] = 2 
+        self.board[5] = -5
+        self.board[7] = -3
+        self.board[11] = 5
+        self.board[12] = -5
+        self.board[16] = 3
+        self.board[18] = 5
+        self.board[23] = -2
 
-    def __copy__(self):
+    def board_copy(self):
         """Creates a copy of the current board."""
         board_copy = Board()
-        board_copy.points = np.copy(self.points)
-        board_copy.bar = self.bar.copy()
-        board_copy.bear_off = self.bear_off.copy()
+        board_copy.board = np.copy(self.board)
         board_copy.turn = self.turn
         return board_copy
     
     def __repr__(self):
         """Display the current state of the board."""
-        return f"Points: {self.points}, Bar: {self.bar}, Bear Off: {self.bear_off}"
+        return f"Points: {self.board[:24]}, Bar: {self.board[24:26]}, Bear Off: {self.board[26:28]}"
     
     def __str__(self):
         """Display the current state of the board in a more readable format."""
         board_str = "Board State:\n"
         for i in range(24):
-            board_str += f"Point {i+1}: {self.points[i]}\n"
-        board_str += f"Bar: {self.bar}\n"
-        board_str += f"Bear Off: {self.bear_off}\n"
+            board_str += f"Point {i+1}: {self.board[i]}\n"
+        board_str += f"Bar: {self.board[24:26]}\n"
+        board_str += f"Bear Off: {self.board[26:28]}\n"
         return board_str
     
 def main():
@@ -65,8 +61,12 @@ def main():
     board = Board.new_game()
     
     # print the board with repr and str to see the difference
-    print(repr(board))
+    print(repr(board) + "\n")
     print(board)
+
+    # Testing a copy
+    new_board = board.board_copy()
+    print("board and new_board are copies:", np.array_equal(board.board, new_board.board))
 
 if __name__ == "__main__":
     main()
