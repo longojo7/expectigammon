@@ -49,8 +49,12 @@ class Board:
     def __str__(self):
         """Display the current state of the board in a more readable format."""
         board_str = "Board State:\n"
-        for i in range(24):
-            board_str += f"Point {i+1}: {self.board[i]}\n"
+        # for i in range(24):
+        #     board_str += f"Point {i+1}: {self.board[i]}\n"
+
+        board_str += f"{self.board[11:5:-1]} | {self.board[5::-1]}\n"
+        board_str += f"{self.board[12:18]} | {self.board[18:24]}\n"
+
         board_str += f"Bar: {self.board[24:26]}\n"
         board_str += f"Bear Off: {self.board[26:28]}\n"
         return board_str

@@ -213,6 +213,7 @@ def main():
 
     print("Current game state:")
     print(repr(game.game_state()))
+    print(str(game.game_state()))
 
     # make the first valid move and print the new game state
     game.make_move(game.state.turn, valid_moves[0][0], valid_moves[0][1], roll)
