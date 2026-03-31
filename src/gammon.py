@@ -7,7 +7,7 @@ Description: The Gammon class contains our board game logic, where we implement 
 # Imports
 import random
 import numpy as np
-from board import Board
+from src.board import Board
 
 class Gammon:
     def __init__(self):
@@ -31,7 +31,7 @@ class Gammon:
         if to_point < 24 and self.state.board[to_point] == -player:
             # move opponent's piece to the bar
             if player == 1:
-                # opponent's piece goes to their bar
+                # opponent's piece goes to their bar 
                 self.state.board[25] += 1  
             else:
                 # opponent's piece goes to their bar
@@ -39,12 +39,13 @@ class Gammon:
             # move player's piece to the point 
             self.state.board[to_point] = player  
 
-        # place the piece in the destination point
-        if to_point == 26 or to_point == 27:
-            # bear off the piece
-            self.state.board[to_point] += 1
         else:
-            self.state.board[to_point] += player
+            # place the piece in the destination point
+            if to_point == 26 or to_point == 27:
+                # bear off the piece
+                self.state.board[to_point] += 1
+            else:
+                self.state.board[to_point] += player
         return True
 
     def valid_moves(self, player, roll):
@@ -56,13 +57,13 @@ class Gammon:
                 return [(24, die - 1) for die in roll if self.state.board[die - 1] >= -1]
             
             # Check if the player is currently bearing off pieces
-            elif np.all(self.state.board[6:25] <= 0):
+            elif np.all(self.state.board[:18] <= 0) and self.state.board[24] == 0:
                 valid_moves = []
                 for die in roll:
-                    if self.state.board[die - 1] > 0:
-                        valid_moves.append((die - 1, 26))
+                    if self.state.board[24 - die] > 0:
+                        valid_moves.append((24 - die, 26))
                     else:
-                        for point in range(die - 1, -1, -1):
+                        for point in range(24 - die, 24, 1):
                             if self.state.board[point] > 0:
                                 valid_moves.append((point, 26))
                                 break
@@ -111,13 +112,13 @@ class Gammon:
                 return [(25, 24 - die) for die in roll if self.state.board[24 - die] <= 1]
             
             # Check if the player is currently bearing off pieces
-            elif np.all(self.state.board[:18] >= 0) and self.state.board[25] == 0:
+            elif np.all(self.state.board[6:] >= 0) and self.state.board[25] == 0:
                 valid_moves = []
                 for die in roll:
-                    if self.state.board[24 - die] < 0:
-                        valid_moves.append((24 - die, 27))
+                    if self.state.board[die - 1] < 0:
+                        valid_moves.append((die - 1, 27))
                     else:
-                        for point in range(24 - die, 24, 1):
+                        for point in range(die - 1, -1, -1):
                             if self.state.board[point] < 0:
                                 valid_moves.append((point, 27))
                                 break
@@ -157,20 +158,13 @@ class Gammon:
                                 valid_moves.append(move)
                                 seen.add(move)
                 return valid_moves
-
-    def can_move(self, player, from_point, to_point):
-        """Return a list of valid moves for the given player."""
-        # Check to see if the move is outside the bounds of the board
-        if from_point < 0 or from_point >= 24 or to_point < 0 or to_point >= 24:
-            print("Invalid move: Points must be between 1 and 24.")
-            return False
-
+            
     def check_winner(self):
         """Check if there is a winner and returns the player number."""
         # return 1 if player 1 wins, return -1 if player 2 wins, return 0 if no winner yet
         if self.state.board[26] == 15:
             return 1
-        elif self.state.board[27] == -15:
+        elif self.state.board[27] == 15:
             return -1
         else:
             return 0
@@ -205,7 +199,10 @@ def main():
 
     # roll once to test
     roll = game.roll_dice()
-    print(f"You got a {roll[0]} and a {roll[0]}")
+    if roll[0] == roll[1]:
+        print(f"You rolled doubles: {roll[0]} and {roll[1]}")
+    else:
+        print(f"You rolled: {roll[0]} and {roll[1]}")
 
     # make a move and print the board state
     valid_moves = game.valid_moves(game.state.turn, roll)
