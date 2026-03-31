@@ -158,14 +158,7 @@ class Gammon:
                                 valid_moves.append(move)
                                 seen.add(move)
                 return valid_moves
-
-    def can_move(self, player, from_point, to_point):
-        """Return a list of valid moves for the given player."""
-        # Check to see if the move is outside the bounds of the board
-        if from_point < 0 or from_point >= 24 or to_point < 0 or to_point >= 24:
-            print("Invalid move: Points must be between 1 and 24.")
-            return False
-
+            
     def check_winner(self):
         """Check if there is a winner and returns the player number."""
         # return 1 if player 1 wins, return -1 if player 2 wins, return 0 if no winner yet
