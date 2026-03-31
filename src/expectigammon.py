@@ -23,24 +23,31 @@ class Player:
 
     def make_move(self, game: Gammon):
         rolls = game.roll_dice()
+        valid_moves = game.valid_moves(self.player_number, rolls)
+        # Create potential full movesets
+        # Run expectiminimax
+        # Keep track of which full moveset gives best expectation
+        # Run game.make_move() on it
 
     def expectiminimax(self, game: Gammon, depth=3, is_max_turn = True):
         if depth == 0 or game.game_over():
             return self.h(game)
 
 
-        board_copy = game.state.board_copy()
+        game_copy = game.copy()
         if is_max_turn:
             best_value = -float("inf")
 
-            for move in get_moves(game):
-                # apply potential move
-
+            for possible_roll in self.roll_outcomes:
                 expected_value = 0
-                for next_roll in self.roll_outcomes:
-                    new_copy = board_copy.copy()
-                    # apply new move
-                    expected_value += self.expectiminimax(new_copy, depth - 1, not is_max_turn)
+
+                roll = possible_roll.copy()
+                valid_moves = game_copy.validmoves(roll)
+                # Need to handle making both moves
+                for move in valid_moves:
+                    game_copy.make_move(self.player_number, move[0], move[1], roll)
+
+                    expected_value += self.expectiminimax(game_copy, depth - 1, not is_max_turn)
 
                 best_value = max(best_value, expected_value/36)
 
@@ -48,6 +55,7 @@ class Player:
 
         else:
             # Duplicate above code but for min
+            best_value = float("inf")
             pass
 
     def h(self, game: Gammon):
