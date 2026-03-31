@@ -13,6 +13,11 @@ class Gammon:
     def __init__(self):
         """Initialize the backgammon game state."""
         self.state = Board.new_game()
+
+    def copy(self):
+        """Make a copy of the current game state."""
+        copy = Gammon()
+        copy.state = self.state.copy()
     
     def make_move(self, player, from_point, to_point, roll):
         """Make a move for the given player from one point to another."""

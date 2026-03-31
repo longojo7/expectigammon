@@ -1,14 +1,15 @@
 """
 Name: Josh Longo and Kevin Shi
-Filename: expecitgammon.py
+Filename: expectigammon.py
 Description: This file contains the expectiminimax algorithm using the game representation in gammon.py.
 """
 
 # Imports
+from board import Board
 from gammon import Gammon
 import numpy as np
 
-from src.board import Board
+
 
 
 class Player:
