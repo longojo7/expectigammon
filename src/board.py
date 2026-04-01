@@ -1,7 +1,7 @@
 """
 Name: Josh Longo and Kevin Shi
 Filename: board.py
-Description: This file will contain the Board class, which represents the state of the backgammon board.
+Description: This file contains the Board class, which represents the state of the backgammon board.
 """
 
 # Imports
