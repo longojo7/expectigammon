@@ -8,19 +8,20 @@ Description: The Gammon class contains our board game logic, where we implement 
 import random
 import numpy as np
 from src.board import Board
+from typing import Self
 
 class Gammon:
     def __init__(self):
         """Initialize the backgammon game state."""
         self.state = Board.new_game()
 
-    def copy(self):
+    def copy(self) -> Self:
         """Make a copy of the current game state."""
         copy = Gammon()
         copy.state = self.state.board_copy()
         return copy
 
-    def make_move(self, player, from_point, to_point, roll):
+    def make_move(self, player, from_point, to_point, roll) -> bool:
         """Make a move for the given player from one point to another."""
         # check if move is valid
         if (from_point, to_point) not in self.valid_moves(player, roll):
@@ -54,7 +55,7 @@ class Gammon:
                 self.state.board[to_point] += player
         return True
 
-    def valid_moves(self, player, roll):
+    def valid_moves(self, player, roll) -> list[tuple[int, int]]:
         """Return a list of valid moves for the given player based on the current board state and dice rolls."""
         if player == 1:
             # Check if the player has any pieces on the bar
@@ -209,8 +210,10 @@ class Gammon:
                                 valid_moves.append(move)
                                 seen.add(move)
                 return valid_moves
-            
-    def check_winner(self):
+        else:
+            raise ValueError('Invalid player')
+
+    def check_winner(self) -> int:
         """Check if there is a winner and returns the player number."""
         # return 1 if player 1 wins, return -1 if player 2 wins, return 0 if no winner yet
         if self.state.board[26] == 15:
@@ -221,7 +224,7 @@ class Gammon:
             return 0
 
     # This might need to be in its in own class since it is more of a utility function but I will see how it goes
-    def roll_dice(self):
+    def roll_dice(self) -> list[int]:
         """Simulate rolling two dice and return the results."""
         die1 = random.randint(1, 6)
         die2 = random.randint(1, 6)
@@ -231,11 +234,11 @@ class Gammon:
             return [die1] * 4  
         return [die1, die2]
     
-    def game_state(self):
+    def game_state(self) -> Board:
         """Return the current state of the game."""
         return self.state
     
-    def game_over(self):
+    def game_over(self) -> bool:
         """Check if the game is over."""
         if self.check_winner() != 0:
             return True
