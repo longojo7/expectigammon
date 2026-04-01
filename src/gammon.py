@@ -24,7 +24,11 @@ class Gammon:
     def make_move(self, player, from_point, to_point, roll) -> bool:
         """Make a move for the given player from one point to another."""
         # check if move is valid
-        if (from_point, to_point) not in self.valid_moves(player, roll):
+        valid_moves = self.valid_moves(player, roll)
+        if not any(
+            move[0] == from_point and move[1] == to_point
+            for move in valid_moves
+        ):
             print("Invalid move")
             return False
         
