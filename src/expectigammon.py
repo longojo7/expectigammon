@@ -49,11 +49,13 @@ class Player:
         for move in moveset:
             game.make_move(player, move[0], move[1], rolls)
 
-    def make_move(self, game: Gammon):
+    def take_turn(self, game: Gammon, depth=3):
         rolls = game.roll_dice()
+        self.current_roll = rolls
         moveset = self.get_moveset(game, rolls, self.player_number)
         # Pass turn if no valid moves
         if not moveset:
+            print("No valid moves, skipping turn.")
             pass
         # Keep track of which full moveset gives best expectation
         best = -float('inf')
@@ -61,7 +63,7 @@ class Player:
         for moves in moveset:
             game_copy = game.copy()
             self.apply_moves(game_copy, moves, rolls, self.player_number)
-            move_expectation = self.expectiminimax(game_copy)
+            move_expectation = self.expectiminimax(game_copy, depth)
             if move_expectation > best:
                 best = move_expectation
                 best_moves = moves
@@ -70,8 +72,10 @@ class Player:
         if best_moves is None:
             best_moves = moveset.pop()
 
+        self.current_move = best_moves
+        self.current_score = best
         # Run game.make_move()
-        self.apply_moves(game, moveset, rolls, self.player_number)
+        self.apply_moves(game, best_moves, rolls, self.player_number)
 
     def expectiminimax(self, game: Gammon, depth=3, is_max_turn = False):
         if depth == 0 or game.game_over():
@@ -81,11 +85,11 @@ class Player:
             best_value = -float("inf")
 
             for possible_roll in self.roll_outcomes:
-                game_copy = game.copy()
                 expected_value = 0
 
-                moveset = self.get_moveset(game_copy, possible_roll, self.player_number)
+                moveset = self.get_moveset(game, possible_roll, self.player_number)
                 for moves in moveset:
+                    game_copy = game.copy()
                     self.apply_moves(game_copy, moves, possible_roll, self.player_number)
                     expected_value += self.expectiminimax(game_copy, depth - 1, not is_max_turn)
 
@@ -97,11 +101,11 @@ class Player:
             best_value = float("inf")
 
             for possible_roll in self.roll_outcomes:
-                game_copy = game.copy()
                 expected_value = 0
 
-                moveset = self.get_moveset(game_copy, possible_roll, -self.player_number)
+                moveset = self.get_moveset(game, possible_roll, -self.player_number)
                 for moves in moveset:
+                    game_copy = game.copy()
                     self.apply_moves(game_copy, moves, possible_roll, -self.player_number)
                     expected_value += self.expectiminimax(game_copy, depth - 1, not is_max_turn)
 
@@ -148,12 +152,12 @@ def main():
     print("Initial board state:")
     print(game.state)
 
-    print("\nEvaluating position at depth=1...")
+    print("\nEvaluating position at depth=1")
     score = player1.expectiminimax(game, depth=1)
     print(f"Position score for player 1: {score:.4f}")
 
-    print("\nPlayer 1 taking turn...")
-    player1.take_turn(game)
+    print("\nPlayer 1 taking turn at depth=1")
+    player1.take_turn(game, depth=1)
 
     print(f"Rolled:     {player1.current_roll}")
     print(f"Best move:  {player1.current_move}")
