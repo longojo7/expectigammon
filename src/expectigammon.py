@@ -6,17 +6,18 @@ Description: This file contains the expectiminimax algorithm using the game repr
 from numpy.f2py.crackfortran import expectbegin
 
 # Imports
-from board import Board
-from gammon import Gammon
+from src.board import Board
+from src.gammon import Gammon
 import numpy as np
-
-
-
 
 class Player:
     def __init__(self, player_number):
         self.player_number = player_number
         self.roll_outcomes = []
+        # To demonstrate algorithm
+        self.current_roll = None
+        self.current_move = None
+        self.current_score = None
         for i in range(1, 7):
             for j in range(1, 7):
                 roll = [i, j]
@@ -136,3 +137,30 @@ class Player:
         heuristic += bar_penalty * state[25]
 
         return heuristic * self.player_number
+
+def main():
+    # Run one move of expectiminimax and print the board state before and after
+    game = Gammon()
+    player1 = Player(1)
+    player2 = Player(-1)
+
+    # the initial board state
+    print("Initial board state:")
+    print(game.state)
+
+    print("\nEvaluating position at depth=1...")
+    score = player1.expectiminimax(game, depth=1)
+    print(f"Position score for player 1: {score:.4f}")
+
+    print("\nPlayer 1 taking turn...")
+    player1.take_turn(game)
+
+    print(f"Rolled:     {player1.current_roll}")
+    print(f"Best move:  {player1.current_move}")
+    print(f"Move score: {player1.current_score:.4f}")
+
+    print("\nBoard state after player 1's move:")
+    print(game.state)
+
+if __name__ == "__main__":
+    main()
