@@ -1,6 +1,10 @@
 # expectigammon
 A Backgammon agent using expectiminimax search with a heuristic evaluation function.
 
+To run demo of expectiminimax algorithm, run the following command from project root. This will execute the `main()` function in `expectigammon.py`:
+```
+python -m src.expectigammon
+```
 To test the game logic, run the following command from the project root. This will execute the `main()` function in `gammon.py`:
 ```
 python -m src.gammon
