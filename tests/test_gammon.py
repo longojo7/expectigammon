@@ -81,6 +81,48 @@ def test_bear_off_valid_black():
     assert len(valid_moves) == 2, "There should be valid moves for bearing off."
     assert all(move[1] == 27 for move in valid_moves), "Valid moves should be bearing off to point 27."
 
+def test_bear_off_valid_white_higher_roll():
+    """Tests that white can bear off any piece that is lower than roll"""
+    game = Gammon()
+    game.state.board = np.zeros(28, dtype=int)
+    game.state.board[23] = 1
+    game.state.board[22] = 1
+    roll = [4, 3]
+    valid_moves = game.valid_moves(1, roll)
+    assert (23, 26) in valid_moves and (22, 26) in valid_moves, "White should be able to bear off from any lower point"
+
+def test_bear_off_valid_black_higher_roll():
+    """Tests that black can bear off any piece that is lower than roll"""
+    game = Gammon()
+    game.state.board = np.zeros(28, dtype=int)
+    game.state.board[0] = -1
+    game.state.board[1] = -1
+    roll = [4, 3]
+    valid_moves = game.valid_moves(-1, roll)
+    assert (0, 27) in valid_moves and (1, 27) in valid_moves, "Black should be able to bear off from any lower point"
+
+def test_bear_off_valid_white_lower_roll():
+    """Tests that white must move higher piece forward at home board when roll is lower"""
+    game = Gammon()
+    game.state.board = np.zeros(28, dtype=int)
+    game.state.board[23] = 1
+    game.state.board[18] = 1
+    roll = [4, 3]
+    valid_move = game.valid_moves(1, roll)
+    assert (18, 22) in valid_move and (18, 21) in valid_move, "White should be forced to move higher piece forward"
+    assert (23, 26) not in valid_move, "White should not be able to bear off"
+
+def test_bear_off_valid_black_lower_roll():
+    """Tests that black must move higher piece forward at home board when roll is lower"""
+    game = Gammon()
+    game.state.board = np.zeros(28, dtype=int)
+    game.state.board[0] = -1
+    game.state.board[5] = -1
+    roll = [4, 3]
+    valid_move = game.valid_moves(-1, roll)
+    assert (5, 1) in valid_move and (5, 2) in valid_move, "Black should be forced to move higher piece forward"
+    assert (0, 27) not in valid_move, "Black should not be able to bear off"
+
 def test_double_roll_moves():
     """Tests valid moves correctly produces list for doubles."""
     game = Gammon()

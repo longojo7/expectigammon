@@ -42,7 +42,7 @@ class Player:
                 expected_value = 0
 
                 roll = possible_roll.copy()
-                valid_moves = game_copy.validmoves(roll)
+                valid_moves = game_copy.valid_moves(self.player_number, roll)
                 # Need to handle making both moves
                 for move in valid_moves:
                     game_copy.make_move(self.player_number, move[0], move[1], roll)
@@ -56,7 +56,15 @@ class Player:
         else:
             # Duplicate above code but for min
             best_value = float("inf")
-            pass
+            for possible_roll in self.roll_outcomes:
+                expected_value = 0
+                roll = possible_roll.copy()
+                valid_moves = game_copy.valid_moves(-self.player_number, roll)
+                for move in valid_moves:
+                    game_copy.make_move(-self.player_number, move[0], move[1], roll)
+                    expected_value += self.expectiminimax(game_copy, depth - 1, not is_max_turn)
+                best_value = min(best_value, expected_value / 36)
+            return best_value
 
     def h(self, game: Gammon):
         if game.game_over():

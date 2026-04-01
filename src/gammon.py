@@ -17,8 +17,9 @@ class Gammon:
     def copy(self):
         """Make a copy of the current game state."""
         copy = Gammon()
-        copy.state = self.state.copy()
-    
+        copy.state = self.state.board_copy()
+        return copy
+
     def make_move(self, player, from_point, to_point, roll):
         """Make a move for the given player from one point to another."""
         # check if move is valid
@@ -64,14 +65,37 @@ class Gammon:
             # Check if the player is currently bearing off pieces
             elif np.all(self.state.board[:18] <= 0) and self.state.board[24] == 0:
                 valid_moves = []
+                # have to track seen moves for doubles
+                seen = set()
                 for die in roll:
+                    # check if there is a piece at the point corresponding to roll
                     if self.state.board[24 - die] > 0:
-                        valid_moves.append((24 - die, 26))
+                        move = (24 - die, 26)
+                        if move not in seen:
+                            valid_moves.append(move)
+                            seen.add(move)
                     else:
-                        for point in range(24 - die, 24, 1):
-                            if self.state.board[point] > 0:
-                                valid_moves.append((point, 26))
-                                break
+                        # find the highest occupied point which is minimum point number for player 1
+                        home_pieces = [p for p in range(18, 24) if self.state.board[p] > 0]
+                        # guard for when no pieces are left at home board return empty list gracefully
+                        if not home_pieces:
+                            return valid_moves
+                        highest_point = min(home_pieces)
+                        # if the highest occupied point is farther than roll must move that piece
+                        if highest_point < 24 - die:
+                            to_point = highest_point + die
+                            move = (highest_point, to_point)
+                            if move not in seen:
+                                valid_moves.append(move)
+                                seen.add(move)
+                        # otherwise can bear off any piece within the roll, although next closest piece is ideally the best to bear off
+                        else:
+                            for point in range(24 - die + 1, 24, 1):
+                                if self.state.board[point] > 0:
+                                    move = (point, 26)
+                                    if move not in seen:
+                                        valid_moves.append(move)
+                                        seen.add(move)
                 return valid_moves
             
             # Otherwise generate valid moves based on the current board state and dice rolls
@@ -119,14 +143,36 @@ class Gammon:
             # Check if the player is currently bearing off pieces
             elif np.all(self.state.board[6:] >= 0) and self.state.board[25] == 0:
                 valid_moves = []
+                # have to track seen moves when doubles are rolled
+                seen = set()
                 for die in roll:
                     if self.state.board[die - 1] < 0:
-                        valid_moves.append((die - 1, 27))
+                        move = (die - 1, 27)
+                        if move not in seen:
+                            valid_moves.append(move)
+                            seen.add(move)
                     else:
-                        for point in range(die - 1, -1, -1):
-                            if self.state.board[point] < 0:
-                                valid_moves.append((point, 27))
-                                break
+                        # find the highest occupied point which is max point number for player 2
+                        home_pieces = [p for p in range(6) if self.state.board[p] < 0]
+                        # guard for when no pieces are left at home board return empty list gracefully
+                        if not home_pieces:
+                            return valid_moves
+                        highest_point = max(home_pieces)
+                        # if the highest occupied point is farther than roll must move that piece
+                        if highest_point > die - 1:
+                            to_point = highest_point - die
+                            move = (highest_point, to_point)
+                            if move not in seen:
+                                valid_moves.append(move)
+                                seen.add(move)
+                        # otherwise can bear off any piece within the roll, although next closest piece is ideally the best to bear off
+                        else:
+                            for point in range(die - 1, -1, -1):
+                                if self.state.board[point] < 0:
+                                    move = (point, 27)
+                                    if move not in seen:
+                                        valid_moves.append(move)
+                                        seen.add(move)
                 return valid_moves
             else:
                 valid_moves = []
