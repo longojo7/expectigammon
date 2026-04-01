@@ -8,19 +8,20 @@ Description: The Gammon class contains our board game logic, where we implement 
 import random
 import numpy as np
 from src.board import Board
+from typing import Self
 
 class Gammon:
     def __init__(self):
         """Initialize the backgammon game state."""
         self.state = Board.new_game()
 
-    def copy(self):
+    def copy(self) -> Self:
         """Make a copy of the current game state."""
         copy = Gammon()
         copy.state = self.state.board_copy()
         return copy
 
-    def make_move(self, player, from_point, to_point, roll):
+    def make_move(self, player, from_point, to_point, roll) -> bool:
         """Make a move for the given player from one point to another."""
         # check if move is valid
         if (from_point, to_point) not in self.valid_moves(player, roll):
@@ -54,13 +55,16 @@ class Gammon:
                 self.state.board[to_point] += player
         return True
 
-    def valid_moves(self, player, roll):
-        """Return a list of valid moves for the given player based on the current board state and dice rolls."""
+    def valid_moves(self, player, roll) -> list[tuple[int, int, int]]:
+        """
+        Return a list of valid moves for the given player based on the current board state and dice rolls.
+        Moves are returned in a tuple (from_point, to_point, die_value).
+        """
         if player == 1:
             # Check if the player has any pieces on the bar
             if self.state.board[24] > 0:
                 # If so, they must move a piece from the bar first
-                return [(24, die - 1) for die in roll if self.state.board[die - 1] >= -1]
+                return [(24, die - 1, die) for die in roll if self.state.board[die - 1] >= -1]
             
             # Check if the player is currently bearing off pieces
             elif np.all(self.state.board[:18] <= 0) and self.state.board[24] == 0:
@@ -70,7 +74,7 @@ class Gammon:
                 for die in roll:
                     # check if there is a piece at the point corresponding to roll
                     if self.state.board[24 - die] > 0:
-                        move = (24 - die, 26)
+                        move = (24 - die, 26, die)
                         if move not in seen:
                             valid_moves.append(move)
                             seen.add(move)
@@ -84,7 +88,7 @@ class Gammon:
                         # if the highest occupied point is farther than roll must move that piece
                         if highest_point < 24 - die:
                             to_point = highest_point + die
-                            move = (highest_point, to_point)
+                            move = (highest_point, to_point, die)
                             if move not in seen:
                                 valid_moves.append(move)
                                 seen.add(move)
@@ -92,7 +96,7 @@ class Gammon:
                         else:
                             for point in range(24 - die + 1, 24, 1):
                                 if self.state.board[point] > 0:
-                                    move = (point, 26)
+                                    move = (point, 26, die)
                                     if move not in seen:
                                         valid_moves.append(move)
                                         seen.add(move)
@@ -111,7 +115,7 @@ class Gammon:
                             for num in range(1, 5):
                                 to_point = from_point + num * die
                                 prev_point = from_point + (num - 1) * die
-                                move = (from_point, to_point)
+                                move = (from_point, to_point, die)
                                 if (to_point < 24 and self.state.board[prev_point] >= -1 and 
                                     self.state.board[to_point] >= -1 and move not in seen):
                                     valid_moves.append(move)
@@ -121,24 +125,25 @@ class Gammon:
                         else:
                             for die in roll:
                                 to_point = from_point + die
-                                move = (from_point, to_point)
+                                move = (from_point, to_point, die)
                                 if to_point < 24 and self.state.board[to_point] >= -1 and move not in seen:  
                                     valid_moves.append(move)
                                     seen.add(move)
-                            # also check sum of both dice 
-                            first_point = from_point + roll[0]
-                            to_point = from_point + sum(roll)
-                            move = (from_point, to_point)
-                            if (to_point < 24 and self.state.board[first_point] >= -1 
-                            and self.state.board[to_point] >= -1 and move not in seen):
-                                valid_moves.append(move)
-                                seen.add(move)
+                            # # also check sum of both dice
+                            # [I think dice sum can be considered two separate moves since you need the intermediate space open anyway]
+                            # first_point = from_point + roll[0]
+                            # to_point = from_point + sum(roll)
+                            # move = (from_point, to_point)
+                            # if (to_point < 24 and self.state.board[first_point] >= -1
+                            # and self.state.board[to_point] >= -1 and move not in seen):
+                            #     valid_moves.append(move)
+                            #     seen.add(move)
                 return valid_moves
             
         elif player == -1:
             # Similar logic for player 2 but in opposite direction
             if self.state.board[25] > 0:
-                return [(25, 24 - die) for die in roll if self.state.board[24 - die] <= 1]
+                return [(25, 24 - die, die) for die in roll if self.state.board[24 - die] <= 1]
             
             # Check if the player is currently bearing off pieces
             elif np.all(self.state.board[6:] >= 0) and self.state.board[25] == 0:
@@ -147,7 +152,7 @@ class Gammon:
                 seen = set()
                 for die in roll:
                     if self.state.board[die - 1] < 0:
-                        move = (die - 1, 27)
+                        move = (die - 1, 27, die)
                         if move not in seen:
                             valid_moves.append(move)
                             seen.add(move)
@@ -161,7 +166,7 @@ class Gammon:
                         # if the highest occupied point is farther than roll must move that piece
                         if highest_point > die - 1:
                             to_point = highest_point - die
-                            move = (highest_point, to_point)
+                            move = (highest_point, to_point, die)
                             if move not in seen:
                                 valid_moves.append(move)
                                 seen.add(move)
@@ -169,7 +174,7 @@ class Gammon:
                         else:
                             for point in range(die - 1, -1, -1):
                                 if self.state.board[point] < 0:
-                                    move = (point, 27)
+                                    move = (point, 27, die)
                                     if move not in seen:
                                         valid_moves.append(move)
                                         seen.add(move)
@@ -186,7 +191,7 @@ class Gammon:
                             for num in range(1, 5):
                                 to_point = from_point - num * die
                                 prev_point = from_point - (num - 1) * die
-                                move = (from_point, to_point)
+                                move = (from_point, to_point, die)
                                 if (to_point >= 0 and self.state.board[prev_point] <= 1 and 
                                     self.state.board[to_point] <= 1 and move not in seen):
                                     valid_moves.append(move)
@@ -196,21 +201,23 @@ class Gammon:
                         else:
                             for die in roll:
                                 to_point = from_point - die
-                                move = (from_point, to_point)
+                                move = (from_point, to_point, die)
                                 if to_point >= 0 and self.state.board[to_point] <= 1 and move not in seen:  
                                     valid_moves.append(move)
                                     seen.add(move)
-                            # also check sum of both dice 
-                            first_point = from_point - roll[0]
-                            to_point = from_point - sum(roll)
-                            move = (from_point, to_point)
-                            if (to_point >= 0 and self.state.board[first_point] <= 1 
-                            and self.state.board[to_point] <= 1 and move not in seen):
-                                valid_moves.append(move)
-                                seen.add(move)
+                            # # also check sum of both dice
+                            # first_point = from_point - roll[0]
+                            # to_point = from_point - sum(roll)
+                            # move = (from_point, to_point)
+                            # if (to_point >= 0 and self.state.board[first_point] <= 1
+                            # and self.state.board[to_point] <= 1 and move not in seen):
+                            #     valid_moves.append(move)
+                            #     seen.add(move)
                 return valid_moves
-            
-    def check_winner(self):
+        else:
+            raise ValueError('Invalid player')
+
+    def check_winner(self) -> int:
         """Check if there is a winner and returns the player number."""
         # return 1 if player 1 wins, return -1 if player 2 wins, return 0 if no winner yet
         if self.state.board[26] == 15:
@@ -221,7 +228,7 @@ class Gammon:
             return 0
 
     # This might need to be in its in own class since it is more of a utility function but I will see how it goes
-    def roll_dice(self):
+    def roll_dice(self) -> list[int]:
         """Simulate rolling two dice and return the results."""
         die1 = random.randint(1, 6)
         die2 = random.randint(1, 6)
@@ -231,11 +238,11 @@ class Gammon:
             return [die1] * 4  
         return [die1, die2]
     
-    def game_state(self):
+    def game_state(self) -> Board:
         """Return the current state of the game."""
         return self.state
     
-    def game_over(self):
+    def game_over(self) -> bool:
         """Check if the game is over."""
         if self.check_winner() != 0:
             return True
