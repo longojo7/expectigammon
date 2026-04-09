@@ -64,5 +64,5 @@ def test_board_repr():
 def test_board_str():
     """Tests the __str__ method to ensure it returns correct format."""
     b = Board.new_game()
-    expected_str = "Board State:\n[ 5  0  0  0 -3  0] | [-5  0  0  0  0  2]\n[-5  0  0  0  3  0] | [ 5  0  0  0  0 -2]\nBar: [0 0]\nBear Off: [0 0]\n"
+    expected_str = "Board State:\n[-5  0  0  0  3  0] | [ 5  0  0  0  0 -2]\n[ 5  0  0  0 -3  0] | [-5  0  0  0  0  2]\nBar: P1=0 P2=0\nBear Off: P1=0 P2=0\n"
     assert str(b) == expected_str, "__str__ should return the correct string representation of the board"

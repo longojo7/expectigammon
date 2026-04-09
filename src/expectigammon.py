@@ -82,36 +82,40 @@ class Player:
             return self.h(game)
 
         if is_max_turn:
-            best_value = -float("inf")
+            total_expected = 0
 
             for possible_roll in self.roll_outcomes:
-                expected_value = 0
+                best_value = -float("inf")
 
                 moveset = self.get_moveset(game, possible_roll, self.player_number)
                 for moves in moveset:
                     game_copy = game.copy()
                     self.apply_moves(game_copy, moves, possible_roll, self.player_number)
-                    expected_value += self.expectiminimax(game_copy, depth - 1, not is_max_turn)
+                    val = self.expectiminimax(game_copy, depth - 1, not is_max_turn)
+                    best_value = max(best_value, val)
 
-                best_value = max(best_value, expected_value / len(self.roll_outcomes))
+                total_expected += best_value
 
-            return best_value
+            return total_expected / len(self.roll_outcomes)
 
         else:
-            best_value = float("inf")
+            total_expected = 0
 
             for possible_roll in self.roll_outcomes:
-                expected_value = 0
+                # Min chooses the worst move for you
+                best_value = float("inf")
 
                 moveset = self.get_moveset(game, possible_roll, -self.player_number)
                 for moves in moveset:
                     game_copy = game.copy()
                     self.apply_moves(game_copy, moves, possible_roll, -self.player_number)
-                    expected_value += self.expectiminimax(game_copy, depth - 1, not is_max_turn)
+                    val = self.expectiminimax(game_copy, depth - 1, not is_max_turn)
+                    # Minimize the expected value for the opponent's turn
+                    best_move = min(best_value, val)
 
-                best_value = min(best_value, expected_value / len(self.roll_outcomes))
+                total_expected += best_value
 
-            return best_value
+            return total_expected / len(self.roll_outcomes)
 
     def h(self, game: Gammon):
         if game.game_over():
