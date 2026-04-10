@@ -114,25 +114,13 @@ class Gammon:
                 for from_point in range(24):
                     # Check if there are pieces to move
                     if self.state.board[from_point] > 0:  
-                        if len(roll) == 4:
-                            die = roll[0]
-                            for num in range(1, 5):
-                                to_point = from_point + num * die
-                                prev_point = from_point + (num - 1) * die
-                                move = (from_point, to_point, die)
-                                if (to_point < 24 and self.state.board[prev_point] >= -1 and 
-                                    self.state.board[to_point] >= -1 and move not in seen):
-                                    valid_moves.append(move)
-                                    seen.add(move)
-                                else:
-                                    break
-                        else:
-                            for die in roll:
-                                to_point = from_point + die
-                                move = (from_point, to_point, die)
-                                if to_point < 24 and self.state.board[to_point] >= -1 and move not in seen:  
-                                    valid_moves.append(move)
-                                    seen.add(move)
+                        # check if move is valid for each die
+                        for die in roll:
+                            to_point = from_point + die
+                            move = (from_point, to_point, die)
+                            if to_point < 24 and self.state.board[to_point] >= -1 and move not in seen:  
+                                valid_moves.append(move)
+                                seen.add(move)
                             # # also check sum of both dice
                             # [I think dice sum can be considered two separate moves since you need the intermediate space open anyway]
                             # first_point = from_point + roll[0]
@@ -189,26 +177,14 @@ class Gammon:
                 seen = set()
                 for from_point in range(24):
                     # Check if there are pieces to move
-                    if self.state.board[from_point] < 0:  
-                        if len(roll) == 4:
-                            die = roll[0]
-                            for num in range(1, 5):
-                                to_point = from_point - num * die
-                                prev_point = from_point - (num - 1) * die
-                                move = (from_point, to_point, die)
-                                if (to_point >= 0 and self.state.board[prev_point] <= 1 and 
-                                    self.state.board[to_point] <= 1 and move not in seen):
-                                    valid_moves.append(move)
-                                    seen.add(move)
-                                else:
-                                    break
-                        else:
-                            for die in roll:
-                                to_point = from_point - die
-                                move = (from_point, to_point, die)
-                                if to_point >= 0 and self.state.board[to_point] <= 1 and move not in seen:  
-                                    valid_moves.append(move)
-                                    seen.add(move)
+                    if self.state.board[from_point] < 0: 
+                        # check if move is valid for each die 
+                        for die in roll:
+                            to_point = from_point - die
+                            move = (from_point, to_point, die)
+                            if to_point >= 0 and self.state.board[to_point] <= 1 and move not in seen:  
+                                valid_moves.append(move)
+                                seen.add(move)
                             # # also check sum of both dice
                             # first_point = from_point - roll[0]
                             # to_point = from_point - sum(roll)

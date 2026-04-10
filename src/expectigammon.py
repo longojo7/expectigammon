@@ -305,7 +305,7 @@ def play_game(player1: Player, player2: Player, depth=2, moves_cap=5, print_move
         print(f"Game ended after {turn_limit} turns with no winner.")
     # stop timer and print elapsed time
     elapsed = time.time() - start
-    print(f"\Game completed in {elapsed:.2f}s after {turn} turns.")
+    print(f"Game completed in {elapsed:.2f}s after {turn} turns.")
     return winner
 
 def main():
