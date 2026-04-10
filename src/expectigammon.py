@@ -234,9 +234,12 @@ class Player:
         # Penalty for blots
         for i in range(0, 24):
             if state[i] == 1:
-                heuristic -= blot_penalty
+                # More dangerous if blot is on opponent home board
+                danger = 2 if i < 6 else 1  
+                heuristic -= blot_penalty * danger
             elif state[i] == -1:
-                heuristic += blot_penalty
+                danger = 2 if i >= 18 else 1
+                heuristic += blot_penalty * danger
 
         # Heavy penalty for pieces on the bar
         heuristic -= bar_penalty * state[24]
@@ -265,15 +268,58 @@ class Player:
 
         return heuristic * self.player_number
 
+def play_game(player1: Player, player2: Player, depth=2, moves_cap=5, print_moves=False, turn_limit=80):
+    # Create the game and initialize turn
+    game = Gammon()
+    turn = 0
+    # start timer
+    start = time.time()
+
+    if print_moves:
+        print("Initial board state:")
+        print(game.state)
+    
+    # Play until game over or turn limit reached
+    while not game.game_over() and turn < turn_limit:
+        current_p = player1 if turn % 2 == 0 else player2
+        player_color = "Player 1 (White)" if current_p == player1 else "Player 2 (Black)"
+        if print_moves:
+            print(f"===={player_color} taking turn {turn + 1}====")
+
+        # Take turn and print results then increment turn
+        current_p.take_turn(game, depth=depth, moves_cap=moves_cap)
+        if print_moves:
+            print(f"Rolled:        {current_p.current_roll}")
+            print(f"Best move:     {current_p.current_move}")
+            print(f"Move score:    {current_p.current_score:.2f}")
+            print(game.state)
+        turn += 1
+
+    # Check winner and print results
+    winner = game.check_winner()
+    if winner == 1:
+        print("Player 1 (White) wins!")
+    elif winner == -1:
+        print("Player 2 (Black) wins!")
+    else:
+        print(f"Game ended after {turn_limit} turns with no winner.")
+    # stop timer and print elapsed time
+    elapsed = time.time() - start
+    print(f"\Game completed in {elapsed:.2f}s after {turn} turns.")
+    return winner
+
 def main():
+    # Simulate a whole game
     game = Gammon()
     player1 = Player(1)
+    player2 = Player(-1)
+    play_game(player1, player2, depth=2, moves_cap=5, print_moves=True)
 
-    print("Initial board state:")
-    print(game.state)
+    # print("Initial board state:")
+    # print(game.state)
     # Iniitialze depth and moves cap
-    depth = 2
-    moves_cap = 5
+    # depth = 2
+    # moves_cap = 5
     # print(f"Evaluating position at depth={depth}")
     # score = player1.expectiminimax(game, depth=depth)
     # print(f"Position score for player 1: {score:.4f}")
@@ -281,24 +327,24 @@ def main():
     # print(f"Nodes pruned  (eval): {player1.nodes_pruned}")
 
     # Reset before take_turn so we get isolated stats for the turn
-    player1.nodes_visited = 0
-    player1.nodes_pruned = 0
+    # player1.nodes_visited = 0
+    # player1.nodes_pruned = 0
 
-    print(f"Player 1 taking turn at depth={depth}")
-    start = time.time()
-    player1.take_turn(game, depth=depth, moves_cap=moves_cap)
-    elapsed = time.time() - start
+    # print(f"Player 1 taking turn at depth={depth}")
+    # start = time.time()
+    # player1.take_turn(game, depth=depth, moves_cap=moves_cap)
+    # elapsed = time.time() - start
 
-    print(f"Rolled:        {player1.current_roll}")
-    print(f"Best move:     {player1.current_move}")
-    print(f"Move score:    {player1.current_score:.2f}")
-    print(f"Time:          {elapsed:.2f}s")
-    print(f"Nodes visited: {player1.nodes_visited}")
-    print(f"Nodes pruned:  {player1.nodes_pruned}")
-    print(f"Score moveset calls: {player1.score_move_call}")
+    # print(f"Rolled:        {player1.current_roll}")
+    # print(f"Best move:     {player1.current_move}")
+    # print(f"Move score:    {player1.current_score:.2f}")
+    # print(f"Time:          {elapsed:.2f}s")
+    # print(f"Nodes visited: {player1.nodes_visited}")
+    # print(f"Nodes pruned:  {player1.nodes_pruned}")
+    # print(f"Score moveset calls: {player1.score_move_call}")
 
-    print("\nBoard state after player 1's move:")
-    print(game.state)
+    # print("\nBoard state after player 1's move:")
+    # print(game.state)
 
 if __name__ == "__main__":
     main()
