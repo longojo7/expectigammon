@@ -3,12 +3,12 @@ Name: Josh Longo and Kevin Shi
 Filename: expectigammon.py
 Description: This file contains the expectiminimax algorithm using the game representation in gammon.py.
 """
-from numpy.f2py.crackfortran import expectbegin
 
 # Imports
 from src.board import Board
 from src.gammon import Gammon
 import numpy as np
+import time
 
 class Player:
     def __init__(self, player_number):
@@ -18,13 +18,18 @@ class Player:
         self.current_roll = None
         self.current_move = None
         self.current_score = None
+        # Generate all 21 possible rolls
         for i in range(1, 7):
-            for j in range(1, 7):
+            for j in range(i, 7):
                 roll = [i, j]
                 self.roll_outcomes.append(roll if i != j else roll * 2)
+        # for measuring nodes visited and pruned
+        self.nodes_visited = 0
+        self.nodes_pruned = 0
+        self.ordering_call = 0
 
     def get_moveset(self, game: Gammon, rolls, player):
-        results = []
+        results = {}
 
         def recurse(current_game, remaining_rolls, path):
             valid_moves = current_game.valid_moves(player, remaining_rolls)
@@ -32,7 +37,11 @@ class Player:
             # Base case: no rolls left or no valid moves
             if not remaining_rolls or not valid_moves:
                 if path:
-                    results.append(tuple(path))
+                    # sorting the moves in the path and using a set to track unique movesets
+                    key = tuple(sorted((path)))
+                    # Ensure we remove permutations of the same moveset
+                    if key not in results:
+                        results[key] = path
                 return
 
             for move in valid_moves:
@@ -43,41 +52,60 @@ class Player:
                 recurse(game_copy, rolls_copy, path + [move])
 
         recurse(game, rolls, [])
-        return set(results)
+        results = list(results.values()) 
+        return results
 
     def apply_moves(self, game: Gammon, moveset, rolls, player):
         for move in moveset:
             game.make_move(player, move[0], move[1], rolls)
 
-    def take_turn(self, game: Gammon, depth=3):
+    def score_moveset(self, game: Gammon, moveset, rolls, player):
+        """Quickly apply moveset and return heuristic score of resulting position for move ordering."""
+        self.ordering_call += 1
+        game_copy = game.copy()
+        self.apply_moves(game_copy, moveset, rolls, player)
+        return self.h(game_copy)
+    
+    def ordered_moveset(self, game: Gammon, rolls, player, moves_cap=2):
+        """Orders the moveset based on heuristic score of resulting position for move ordering with forward prunning."""
+        moveset = self.get_moveset(game, rolls, player)
+        # Handle Max and Min
+        is_max = (player == self.player_number)
+        # Implement forward pruning to cap number of moves evaluated for 
+        return sorted(moveset, key=lambda moves: self.score_moveset(game, moves, rolls, player), reverse=is_max)[:moves_cap]
+
+    def take_turn(self, game: Gammon, depth=3, moves_cap=2):
         rolls = game.roll_dice()
         self.current_roll = rolls
-        moveset = self.get_moveset(game, rolls, self.player_number)
+        # Implement move ordering so that we can evaluate best moves and prune worse moves for chance nodes
+        moveset = self.ordered_moveset(game, rolls, self.player_number, moves_cap=moves_cap)
         # Pass turn if no valid moves
         if not moveset:
             print("No valid moves, skipping turn.")
-            pass
+            return
         # Keep track of which full moveset gives best expectation
         best = -float('inf')
         best_moves = None
         for moves in moveset:
             game_copy = game.copy()
             self.apply_moves(game_copy, moves, rolls, self.player_number)
-            move_expectation = self.expectiminimax(game_copy, depth)
+            move_expectation = self.expectiminimax(game_copy, depth, moves_cap=moves_cap)
             if move_expectation > best:
                 best = move_expectation
                 best_moves = moves
 
         # If all moves guarantee loss, choose any one
         if best_moves is None:
-            best_moves = moveset.pop()
+            best_moves = moveset[0]
 
         self.current_move = best_moves
         self.current_score = best
         # Run game.make_move()
         self.apply_moves(game, best_moves, rolls, self.player_number)
 
-    def expectiminimax(self, game: Gammon, depth=3, is_max_turn = False):
+    def expectiminimax(self, game: Gammon, depth=3, is_max_turn = False, alpha=-float("inf"), beta=float("inf"), moves_cap=2):
+        # Increment nodes visited
+        self.nodes_visited += 1
         if depth == 0 or game.game_over():
             return self.h(game)
 
@@ -85,37 +113,76 @@ class Player:
             total_expected = 0
 
             for possible_roll in self.roll_outcomes:
-                best_value = -float("inf")
+                # Initialize alpha, beta, and best value for this roll
+                alpha_roll = alpha
+                beta_roll = beta
+                best_value = float("-inf")
 
-                moveset = self.get_moveset(game, possible_roll, self.player_number)
-                for moves in moveset:
+                # Skip move ordering in recursive calls to save time, but still get moveset for forward pruning
+                move_lst = self.get_moveset(game, possible_roll, self.player_number)[:moves_cap]
+                if not move_lst:
+                    # If no valid moves, just evaluate the expectation of the next state
+                    game_copy = game.copy()
+                    val = self.expectiminimax(game_copy, depth - 1, not is_max_turn, alpha_roll, beta_roll, moves_cap=moves_cap)
+                    weight = 1/36 if len(possible_roll) == 4 else 2/36
+                    total_expected += val * weight
+                    continue
+
+                for moves in move_lst:
                     game_copy = game.copy()
                     self.apply_moves(game_copy, moves, possible_roll, self.player_number)
-                    val = self.expectiminimax(game_copy, depth - 1, not is_max_turn)
+                    val = self.expectiminimax(game_copy, depth - 1, not is_max_turn, alpha_roll, beta_roll, moves_cap=moves_cap)
                     best_value = max(best_value, val)
+                    # Update alpha for this roll and prune if possible
+                    alpha_roll = max(alpha_roll, best_value)
+                    if alpha_roll >= beta_roll:
+                        # Increment nodes pruned by the number of moves we didn't evaluate for this roll
+                        self.nodes_pruned += len(move_lst) - move_lst.index(moves) - 1
+                        break
+                
+                # Weight each roll
+                weight = 1/36 if len(possible_roll) == 4 else 2/36
+                total_expected += best_value * weight
 
-                total_expected += best_value
-
-            return total_expected / len(self.roll_outcomes)
+            return total_expected
 
         else:
             total_expected = 0
 
             for possible_roll in self.roll_outcomes:
+                # Initialize alpha, beta, and best value for this roll
+                alpha_roll = alpha
+                beta_roll = beta
                 # Min chooses the worst move for you
                 best_value = float("inf")
 
-                moveset = self.get_moveset(game, possible_roll, -self.player_number)
-                for moves in moveset:
+                move_lst = self.get_moveset(game, possible_roll, -self.player_number)[:moves_cap]
+                if not move_lst:
+                    # If no valid moves, just evaluate the expectation of the next state
+                    game_copy = game.copy()
+                    val = self.expectiminimax(game_copy, depth - 1, not is_max_turn, alpha_roll, beta_roll, moves_cap=moves_cap)
+                    weight = 1/36 if len(possible_roll) == 4 else 2/36
+                    total_expected += val * weight
+                    continue
+
+                for moves in move_lst:
                     game_copy = game.copy()
                     self.apply_moves(game_copy, moves, possible_roll, -self.player_number)
-                    val = self.expectiminimax(game_copy, depth - 1, not is_max_turn)
+                    val = self.expectiminimax(game_copy, depth - 1, not is_max_turn, alpha_roll, beta_roll, moves_cap=moves_cap)
                     # Minimize the expected value for the opponent's turn
-                    best_move = min(best_value, val)
+                    best_value = min(best_value, val)
+                    # Update beta for this roll and prune if possible
+                    beta_roll = min(beta_roll, best_value)
+                    if alpha_roll >= beta_roll:
+                        # Increment nodes pruned by the number of moves we didn't evaluate for this roll
+                        self.nodes_pruned += len(move_lst) - move_lst.index(moves) - 1
+                        break
 
-                total_expected += best_value
+                # Weight each roll
+                weight = 1/36 if len(possible_roll) == 4 else 2/36
+                total_expected += best_value * weight
 
-            return total_expected / len(self.roll_outcomes)
+            return total_expected
 
     def h(self, game: Gammon):
         if game.game_over():
@@ -147,25 +214,36 @@ class Player:
         return heuristic * self.player_number
 
 def main():
-    # Run one move of expectiminimax and print the board state before and after
     game = Gammon()
     player1 = Player(1)
-    player2 = Player(-1)
 
-    # the initial board state
     print("Initial board state:")
     print(game.state)
+    # Iniitialze depth and moves cap
+    depth = 2
+    moves_cap = 2
+    # print(f"Evaluating position at depth={depth}")
+    # score = player1.expectiminimax(game, depth=depth)
+    # print(f"Position score for player 1: {score:.4f}")
+    # print(f"Nodes visited (eval): {player1.nodes_visited}")
+    # print(f"Nodes pruned  (eval): {player1.nodes_pruned}")
 
-    print("\nEvaluating position at depth=1")
-    score = player1.expectiminimax(game, depth=1)
-    print(f"Position score for player 1: {score:.4f}")
+    # Reset before take_turn so we get isolated stats for the turn
+    player1.nodes_visited = 0
+    player1.nodes_pruned = 0
 
-    print("\nPlayer 1 taking turn at depth=1")
-    player1.take_turn(game, depth=1)
+    print(f"Player 1 taking turn at depth={depth}")
+    start = time.time()
+    player1.take_turn(game, depth=depth, moves_cap=moves_cap)
+    elapsed = time.time() - start
 
-    print(f"Rolled:     {player1.current_roll}")
-    print(f"Best move:  {player1.current_move}")
-    print(f"Move score: {player1.current_score:.4f}")
+    print(f"Rolled:        {player1.current_roll}")
+    print(f"Best move:     {player1.current_move}")
+    print(f"Move score:    {player1.current_score:.4f}")
+    print(f"Time:          {elapsed:.3f}s")
+    print(f"Nodes visited: {player1.nodes_visited}")
+    print(f"Nodes pruned:  {player1.nodes_pruned}")
+    print(f"Move ordering calls: {player1.ordering_call}")
 
     print("\nBoard state after player 1's move:")
     print(game.state)
