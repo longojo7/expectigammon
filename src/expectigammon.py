@@ -93,6 +93,7 @@ class Player:
         if not moveset:
             print("No valid moves, skipping turn.")
             return
+        
         # Keep track of which full moveset gives best expectation
         best = -float('inf')
         best_moves = None
@@ -210,19 +211,27 @@ class Player:
     def h(self, game: Gammon):
         if game.game_over():
             return float("inf") * self.player_number
-
+        
+        # Initialize heuristic score and get board state
         heuristic = 0
-
         state = game.state.board
-        # Total distance to travel
+
+        # set weights for heuristic features (we can tune these based on performance)
+        pip_weight = 1
+        blot_penalty = 3
+        bar_penalty = 7
+        prime_bonus = 3
+        home_bonus = 2
+        bearoff_bonus = 10
+
+        # Apply pip count weight for distance to bearing off 
         for i in range(0, 24):
             if state[i] > 0:
-                heuristic -= (23 - i) * state[i]
+                heuristic -= pip_weight * (23 - i) * state[i]
             else:
-                heuristic -= (i + 1) * state[i]
+                heuristic -= pip_weight * (i + 1) * state[i]
 
         # Penalty for blots
-        blot_penalty = 2    # Modify based on whether the blot is in danger?
         for i in range(0, 24):
             if state[i] == 1:
                 heuristic -= blot_penalty
@@ -230,9 +239,29 @@ class Player:
                 heuristic += blot_penalty
 
         # Heavy penalty for pieces on the bar
-        bar_penalty = 5     # Increase based on opponent's points at home?
         heuristic -= bar_penalty * state[24]
         heuristic += bar_penalty * state[25]
+
+        # Apply bonus for primes or when you have consecutive points blocked off
+        for i in range(23):
+            if state[i] > 1 and state[i+1] > 1:
+                heuristic += prime_bonus
+            elif state[i] < -1 and state[i+1] < -1:
+                heuristic -= prime_bonus
+
+        # Apply bonus for pieces in home board for player 1
+        for i in range(18, 24):
+            if state[i] > 0:
+                heuristic += home_bonus * state[i]
+                
+        # Penalize for pieces in home board for player 2
+        for i in range(0, 6):
+            if state[i] < 0:
+                heuristic -= home_bonus * abs(state[i])
+
+        # Apply bonus for pieces borne off
+        heuristic += bearoff_bonus * state[26]
+        heuristic -= bearoff_bonus * state[27]
 
         return heuristic * self.player_number
 
