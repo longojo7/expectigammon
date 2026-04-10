@@ -26,7 +26,9 @@ class Player:
         # for measuring nodes visited and pruned
         self.nodes_visited = 0
         self.nodes_pruned = 0
-        self.ordering_call = 0
+        self.score_move_call = 0
+        # add a transposition table to store already evaluated board states (board state + depth + whose turn it is)
+        self.transposition_table = {}
 
     def get_moveset(self, game: Gammon, rolls, player, cap=None):
         results = {}
@@ -63,7 +65,7 @@ class Player:
 
     def score_moveset(self, game: Gammon, moveset, rolls, player):
         """Quickly apply moveset and return heuristic score of resulting position for move ordering."""
-        self.ordering_call += 1
+        self.score_move_call += 1
         game_copy = game.copy()
         self.apply_moves(game_copy, moveset, rolls, player)
         return self.h(game_copy)
@@ -76,11 +78,17 @@ class Player:
         # Implement forward pruning to cap number of moves evaluated for each roll
         return sorted(moveset, key=lambda moves: self.score_moveset(game, moves, rolls, player), reverse=is_max)[:moves_cap]
 
-    def take_turn(self, game: Gammon, depth=3, moves_cap=5):
+    def take_turn(self, game: Gammon, depth=2, moves_cap=5):
+        # reset transposition table at the start of each turn since we won't revisit states across turns
+        self.transposition_table = {}
+
+        # Roll dice
         rolls = game.roll_dice()
         self.current_roll = rolls
+
         # Implement move ordering so that we can evaluate best moves and prune worse moves for chance nodes
         moveset = self.ordered_moveset(game, rolls, self.player_number, moves_cap=moves_cap)
+
         # Pass turn if no valid moves
         if not moveset:
             print("No valid moves, skipping turn.")
@@ -105,7 +113,13 @@ class Player:
         # Run game.make_move()
         self.apply_moves(game, best_moves, rolls, self.player_number)
 
-    def expectiminimax(self, game: Gammon, depth=3, is_max_turn = False, alpha=-float("inf"), beta=float("inf"), moves_cap=2):
+    def expectiminimax(self, game: Gammon, depth=2, is_max_turn = False, alpha=-float("inf"), beta=float("inf"), moves_cap=2):
+        # Key for tranposition table
+        key = (tuple(game.state.board), depth, is_max_turn)
+        # Check if we've already evaluated this state at this depth and turn and return if so
+        if key in self.transposition_table:
+            return self.transposition_table[key]
+        
         # Increment nodes visited
         self.nodes_visited += 1
         if depth == 0 or game.game_over():
@@ -146,6 +160,9 @@ class Player:
                 weight = 1/36 if len(possible_roll) == 4 else 2/36
                 total_expected += best_value * weight
 
+            # store total expected in transposition table for this position depth and turn
+            self.transposition_table[key] = total_expected
+
             return total_expected
 
         else:
@@ -185,6 +202,9 @@ class Player:
                 weight = 1/36 if len(possible_roll) == 4 else 2/36
                 total_expected += best_value * weight
 
+            # store total expected in transposition table for this position depth and turn
+            self.transposition_table[key] = total_expected
+
             return total_expected
 
     def h(self, game: Gammon):
@@ -223,8 +243,8 @@ def main():
     print("Initial board state:")
     print(game.state)
     # Iniitialze depth and moves cap
-    depth = 3
-    moves_cap = 2
+    depth = 2
+    moves_cap = 5
     # print(f"Evaluating position at depth={depth}")
     # score = player1.expectiminimax(game, depth=depth)
     # print(f"Position score for player 1: {score:.4f}")
@@ -242,11 +262,11 @@ def main():
 
     print(f"Rolled:        {player1.current_roll}")
     print(f"Best move:     {player1.current_move}")
-    print(f"Move score:    {player1.current_score:.4f}")
-    print(f"Time:          {elapsed:.3f}s")
+    print(f"Move score:    {player1.current_score:.2f}")
+    print(f"Time:          {elapsed:.2f}s")
     print(f"Nodes visited: {player1.nodes_visited}")
     print(f"Nodes pruned:  {player1.nodes_pruned}")
-    print(f"Move ordering calls: {player1.ordering_call}")
+    print(f"Score moveset calls: {player1.score_move_call}")
 
     print("\nBoard state after player 1's move:")
     print(game.state)
