@@ -28,10 +28,12 @@ class Player:
         self.nodes_pruned = 0
         self.ordering_call = 0
 
-    def get_moveset(self, game: Gammon, rolls, player):
+    def get_moveset(self, game: Gammon, rolls, player, cap=None):
         results = {}
 
         def recurse(current_game, remaining_rolls, path):
+            if cap and len(results) >= cap:
+                return
             valid_moves = current_game.valid_moves(player, remaining_rolls)
 
             # Base case: no rolls left or no valid moves
@@ -66,15 +68,15 @@ class Player:
         self.apply_moves(game_copy, moveset, rolls, player)
         return self.h(game_copy)
     
-    def ordered_moveset(self, game: Gammon, rolls, player, moves_cap=2):
+    def ordered_moveset(self, game: Gammon, rolls, player, moves_cap=5):
         """Orders the moveset based on heuristic score of resulting position for move ordering with forward prunning."""
         moveset = self.get_moveset(game, rolls, player)
         # Handle Max and Min
         is_max = (player == self.player_number)
-        # Implement forward pruning to cap number of moves evaluated for 
+        # Implement forward pruning to cap number of moves evaluated for each roll
         return sorted(moveset, key=lambda moves: self.score_moveset(game, moves, rolls, player), reverse=is_max)[:moves_cap]
 
-    def take_turn(self, game: Gammon, depth=3, moves_cap=2):
+    def take_turn(self, game: Gammon, depth=3, moves_cap=5):
         rolls = game.roll_dice()
         self.current_roll = rolls
         # Implement move ordering so that we can evaluate best moves and prune worse moves for chance nodes
@@ -118,8 +120,8 @@ class Player:
                 beta_roll = beta
                 best_value = float("-inf")
 
-                # Skip move ordering in recursive calls to save time, but still get moveset for forward pruning
-                move_lst = self.get_moveset(game, possible_roll, self.player_number)[:moves_cap]
+                # Skip move ordering in recursive calls to save time, but still get moveset with early exit once cap is reached
+                move_lst = self.get_moveset(game, possible_roll, self.player_number, cap=moves_cap)
                 if not move_lst:
                     # If no valid moves, just evaluate the expectation of the next state
                     game_copy = game.copy()
@@ -155,8 +157,9 @@ class Player:
                 beta_roll = beta
                 # Min chooses the worst move for you
                 best_value = float("inf")
-
-                move_lst = self.get_moveset(game, possible_roll, -self.player_number)[:moves_cap]
+                
+                # Skip move ordering in recursive calls to save time, but still get moveset with early exit once cap is reached
+                move_lst = self.get_moveset(game, possible_roll, -self.player_number, cap=moves_cap)
                 if not move_lst:
                     # If no valid moves, just evaluate the expectation of the next state
                     game_copy = game.copy()
@@ -220,7 +223,7 @@ def main():
     print("Initial board state:")
     print(game.state)
     # Iniitialze depth and moves cap
-    depth = 2
+    depth = 3
     moves_cap = 2
     # print(f"Evaluating position at depth={depth}")
     # score = player1.expectiminimax(game, depth=depth)
