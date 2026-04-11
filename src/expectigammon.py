@@ -82,6 +82,11 @@ class Player:
         # reset transposition table at the start of each turn since we won't revisit states across turns
         self.transposition_table = {}
 
+        # Also reset current move, current roll, and current score for demonstration purposes
+        self.current_move = None
+        self.current_roll = None
+        self.current_score = None
+
         # Roll dice
         rolls = game.roll_dice()
         self.current_roll = rolls
@@ -91,7 +96,12 @@ class Player:
 
         # Pass turn if no valid moves
         if not moveset:
-            print("No valid moves, skipping turn.")
+            if self.player_number == 1 and game.state.board[24] > 0:
+                print("Player 1 (White) has pieces on the bar but can't re-enter, skipping turn.")
+            elif self.player_number == -1 and game.state.board[25] > 0:
+                print("Player 2 (Black) has pieces on the bar but can't re-enter, skipping turn.")
+            else:
+                print("No valid moves, skipping turn.")
             return
         
         # Keep track of which full moveset gives best expectation
@@ -100,7 +110,7 @@ class Player:
         for moves in moveset:
             game_copy = game.copy()
             self.apply_moves(game_copy, moves, rolls, self.player_number)
-            move_expectation = self.expectiminimax(game_copy, depth, moves_cap=moves_cap)
+            move_expectation = self.expectiminimax(game_copy, depth, is_max_next=(self.player_number == -1), moves_cap=moves_cap)
             if move_expectation > best:
                 best = move_expectation
                 best_moves = moves
@@ -114,9 +124,9 @@ class Player:
         # Run game.make_move()
         self.apply_moves(game, best_moves, rolls, self.player_number)
 
-    def expectiminimax(self, game: Gammon, depth=2, is_max_turn = False, alpha=-float("inf"), beta=float("inf"), moves_cap=2):
+    def expectiminimax(self, game: Gammon, depth=2, is_max_next=False, alpha=-float("inf"), beta=float("inf"), moves_cap=2):
         # Key for tranposition table
-        key = (tuple(game.state.board), depth, is_max_turn)
+        key = (tuple(game.state.board), depth, is_max_next)
         # Check if we've already evaluated this state at this depth and turn and return if so
         if key in self.transposition_table:
             return self.transposition_table[key]
@@ -126,7 +136,7 @@ class Player:
         if depth == 0 or game.game_over():
             return self.h(game)
 
-        if is_max_turn:
+        if is_max_next:
             total_expected = 0
 
             for possible_roll in self.roll_outcomes:
@@ -140,7 +150,7 @@ class Player:
                 if not move_lst:
                     # If no valid moves, just evaluate the expectation of the next state
                     game_copy = game.copy()
-                    val = self.expectiminimax(game_copy, depth - 1, not is_max_turn, alpha_roll, beta_roll, moves_cap=moves_cap)
+                    val = self.expectiminimax(game_copy, depth - 1, not is_max_next, alpha_roll, beta_roll, moves_cap=moves_cap)
                     weight = 1/36 if len(possible_roll) == 4 else 2/36
                     total_expected += val * weight
                     continue
@@ -148,7 +158,7 @@ class Player:
                 for moves in move_lst:
                     game_copy = game.copy()
                     self.apply_moves(game_copy, moves, possible_roll, self.player_number)
-                    val = self.expectiminimax(game_copy, depth - 1, not is_max_turn, alpha_roll, beta_roll, moves_cap=moves_cap)
+                    val = self.expectiminimax(game_copy, depth - 1, not is_max_next, alpha_roll, beta_roll, moves_cap=moves_cap)
                     best_value = max(best_value, val)
                     # Update alpha for this roll and prune if possible
                     alpha_roll = max(alpha_roll, best_value)
@@ -181,7 +191,7 @@ class Player:
                 if not move_lst:
                     # If no valid moves, just evaluate the expectation of the next state
                     game_copy = game.copy()
-                    val = self.expectiminimax(game_copy, depth - 1, not is_max_turn, alpha_roll, beta_roll, moves_cap=moves_cap)
+                    val = self.expectiminimax(game_copy, depth - 1, not is_max_next, alpha_roll, beta_roll, moves_cap=moves_cap)
                     weight = 1/36 if len(possible_roll) == 4 else 2/36
                     total_expected += val * weight
                     continue
@@ -189,7 +199,7 @@ class Player:
                 for moves in move_lst:
                     game_copy = game.copy()
                     self.apply_moves(game_copy, moves, possible_roll, -self.player_number)
-                    val = self.expectiminimax(game_copy, depth - 1, not is_max_turn, alpha_roll, beta_roll, moves_cap=moves_cap)
+                    val = self.expectiminimax(game_copy, depth - 1, not is_max_next, alpha_roll, beta_roll, moves_cap=moves_cap)
                     # Minimize the expected value for the opponent's turn
                     best_value = min(best_value, val)
                     # Update beta for this roll and prune if possible
@@ -227,7 +237,7 @@ class Player:
         # Apply pip count weight for distance to bearing off 
         for i in range(0, 24):
             if state[i] > 0:
-                heuristic -= pip_weight * (23 - i) * state[i]
+                heuristic -= pip_weight * (24 - i) * state[i]
             else:
                 heuristic -= pip_weight * (i + 1) * state[i]
 
@@ -290,8 +300,9 @@ def play_game(player1: Player, player2: Player, depth=2, moves_cap=5, print_move
         current_p.take_turn(game, depth=depth, moves_cap=moves_cap)
         if print_moves:
             print(f"Rolled:        {current_p.current_roll}")
-            print(f"Best move:     {current_p.current_move}")
-            print(f"Move score:    {current_p.current_score:.2f}")
+            if current_p.current_move:
+                print(f"Best move:     {current_p.current_move}")
+                print(f"Move score:    {current_p.current_score:.2f}")
             print(game.state)
         turn += 1
 
