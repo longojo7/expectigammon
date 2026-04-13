@@ -10,7 +10,7 @@ from src.gammon import Gammon
 from src.expectigammon import Player
 
 # Global variables for gui layout and hyperaparameters
-WIDTH, HEIGHT = 1060, 740
+WIDTH, HEIGHT = 1150, 720
 # Updated to 60 to leave room for point labels
 BOARD_X, BOARD_Y = 50, 60
 BOARD_W, BOARD_H = 720, 580
@@ -20,9 +20,15 @@ HALF_W = (BOARD_W - BAR_W) // 2
 # Width of each triangle point, used for click detection and drawing
 POINT_W = HALF_W // 6              
 PIECE_R = 20
-INFO_X = 810
+INFO_X = 880
 DEPTH = 2
 MOVES_CAP = 5
+# Create the bear off zones
+BEAROFF_X = BOARD_X + BOARD_W + 1
+BEAROFF_W = 40
+BEAROFF_H = BOARD_H // 2 
+WHITE_BEAROFF_RECT = pygame.Rect(BEAROFF_X, BOARD_Y, BEAROFF_W, BEAROFF_H)
+BLACK_BEAROFF_RECT = pygame.Rect(BEAROFF_X, BOARD_Y + BOARD_H // 2, BEAROFF_W, BEAROFF_H)
 
 # Colors
 WHITE = (255, 255, 255)
@@ -111,9 +117,8 @@ class GUI:
 
     # Board geometry helpers
     def col_cx(self, col: int) -> int:
-        """
-        Return the horizontal centre of column col (0-11). Columns 0-5 is left half and columns 6-11 is right half (after bar).
-        """
+        """Return the horizontal center of column col (0-11). Columns 0-5 
+        is left half and columns 6-11 is right half (after bar)."""
         if col < 6:
             return BOARD_X + col * POINT_W + POINT_W // 2
         else:
@@ -189,6 +194,17 @@ class GUI:
         pygame.draw.rect(self.screen, MID_BROWN,  bar_rect)
         pygame.draw.rect(self.screen, DARK_BROWN, bar_rect, 2)
 
+        # Bear off zones
+        pygame.draw.rect(self.screen, MID_BROWN, WHITE_BEAROFF_RECT, border_radius=4)
+        pygame.draw.rect(self.screen, DARK_BROWN, WHITE_BEAROFF_RECT, 2, border_radius=4)
+        pygame.draw.rect(self.screen, MID_BROWN, BLACK_BEAROFF_RECT, border_radius=4)
+        pygame.draw.rect(self.screen, DARK_BROWN, BLACK_BEAROFF_RECT, 2, border_radius=4)
+        white_label = self.font_sm.render("White", True, CREAM)
+        black_label = self.font_sm.render("Black", True, CREAM)
+        # Place white label above and black label below
+        self.screen.blit(white_label, (WHITE_BEAROFF_RECT.centerx - white_label.get_width() // 2, BOARD_Y - white_label.get_height() - 3))
+        self.screen.blit(black_label, (BLACK_BEAROFF_RECT.centerx - black_label.get_width() // 2, BOARD_Y + BOARD_H + 3))
+
         # Point number labels drawn outside the board (above top edge, below bottom edge)
         for col in range(12):
             cx = self.col_cx(col)
@@ -220,8 +236,14 @@ class GUI:
 
         # Highlight valid destination points
         for vm in self.valid_moves:
+            if vm[1] == 26:
+                # Highlight white bear off zone
+                pygame.draw.rect(self.screen, GREEN, WHITE_BEAROFF_RECT, 3, border_radius=4)
+            elif vm[1] == 27:
+                # Highlight black bear off zone
+                pygame.draw.rect(self.screen, GREEN, BLACK_BEAROFF_RECT, 3, border_radius=4)
             # only highlight on-board destinations not bearing off
-            if vm[1] < 24:  
+            elif vm[1] < 24:  
                 val = board[vm[1]]
                 if val != 0:
                     position = self.piece_positions(vm[1], val)
@@ -263,6 +285,21 @@ class GUI:
         for cx, cy in self.bar_positions(-1, p2_bar):
             pygame.draw.circle(self.screen, DARK_GRAY, (cx, cy), PIECE_R)
             pygame.draw.circle(self.screen, WHITE, (cx, cy), PIECE_R, 2)
+
+        # Draw bear off pieces in the bear off zones
+        piece_h = 10
+        piece_gap = 2
+        # White pieces
+        for i in range(board[26]):
+            py = WHITE_BEAROFF_RECT.top + 1 + i * (piece_h + piece_gap)
+            pygame.draw.rect(self.screen, CREAM, (WHITE_BEAROFF_RECT.x + 2, py, BEAROFF_W - 4, piece_h), border_radius=4)
+            pygame.draw.rect(self.screen, BLACK, (WHITE_BEAROFF_RECT.x + 2, py, BEAROFF_W - 4, piece_h), 1, border_radius=4)
+        # Black pieces
+        for i in range(board[27]):
+            py = BLACK_BEAROFF_RECT.bottom - (i + 1) * (piece_h + piece_gap)
+            pygame.draw.rect(self.screen, DARK_GRAY, (BLACK_BEAROFF_RECT.x + 2, py, BEAROFF_W - 4, piece_h), border_radius=4)
+            pygame.draw.rect(self.screen, WHITE, (BLACK_BEAROFF_RECT.x + 2, py, BEAROFF_W - 4, piece_h), 1, border_radius=4)
+
 
     def draw_info(self):
         board = self.game.state.board
@@ -404,6 +441,11 @@ class GUI:
         bar_cx = BOARD_X + 6 * POINT_W + BAR_W // 2
         if abs(mx - bar_cx) <= BAR_W // 2 and BOARD_Y <= my <= BOARD_Y + BOARD_H:
             return 24 if my >= BOARD_Y + BOARD_H // 2 else 25
+        # Check bear off zones
+        if WHITE_BEAROFF_RECT.collidepoint(mx, my):
+            return 26
+        if BLACK_BEAROFF_RECT.collidepoint(mx, my):
+            return 27
         return None
 
 
