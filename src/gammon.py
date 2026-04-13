@@ -83,27 +83,24 @@ class Gammon:
                             valid_moves.append(move)
                             seen.add(move)
                     else:
-                        # find the highest occupied point which is minimum point number for player 1
+                        # No exact match so allow any piece to move forward or bear off with overshoot
                         home_pieces = [p for p in range(18, 24) if self.state.board[p] > 0]
-                        # guard for when no pieces are left at home board return empty list gracefully
                         if not home_pieces:
                             return valid_moves
-                        highest_point = min(home_pieces)
-                        # if the highest occupied point is farther than roll must move that piece
-                        if highest_point < 24 - die:
-                            to_point = highest_point + die
-                            move = (highest_point, to_point, die)
+                        for point in home_pieces:
+                            to_point = point + die
+                            if to_point < 24:
+                                # Move forward within home board
+                                move = (point, to_point, die)
+                            else:
+                                # If overshoot only bear off farthest piece
+                                if point == min(home_pieces):
+                                    move = (point, 26, die)
+                                else:
+                                    continue
                             if move not in seen:
                                 valid_moves.append(move)
                                 seen.add(move)
-                        # otherwise can bear off any piece within the roll, although next closest piece is ideally the best to bear off
-                        else:
-                            for point in range(24 - die + 1, 24, 1):
-                                if self.state.board[point] > 0:
-                                    move = (point, 26, die)
-                                    if move not in seen:
-                                        valid_moves.append(move)
-                                        seen.add(move)
                 return valid_moves
             
             # Otherwise generate valid moves based on the current board state and dice rolls
@@ -121,15 +118,6 @@ class Gammon:
                             if to_point < 24 and self.state.board[to_point] >= -1 and move not in seen:  
                                 valid_moves.append(move)
                                 seen.add(move)
-                            # # also check sum of both dice
-                            # [I think dice sum can be considered two separate moves since you need the intermediate space open anyway]
-                            # first_point = from_point + roll[0]
-                            # to_point = from_point + sum(roll)
-                            # move = (from_point, to_point)
-                            # if (to_point < 24 and self.state.board[first_point] >= -1
-                            # and self.state.board[to_point] >= -1 and move not in seen):
-                            #     valid_moves.append(move)
-                            #     seen.add(move)
                 return valid_moves
             
         elif player == -1:
@@ -154,22 +142,19 @@ class Gammon:
                         # guard for when no pieces are left at home board return empty list gracefully
                         if not home_pieces:
                             return valid_moves
-                        highest_point = max(home_pieces)
-                        # if the highest occupied point is farther than roll must move that piece
-                        if highest_point > die - 1:
-                            to_point = highest_point - die
-                            move = (highest_point, to_point, die)
+                        for point in home_pieces:
+                            to_point = point - die
+                            if to_point >= 0:
+                                # Must move forward on board
+                                move = (point, to_point, die)
+                            else:
+                                if point == max(home_pieces):
+                                    move = (point, 27, die)
+                                else:
+                                    continue
                             if move not in seen:
                                 valid_moves.append(move)
                                 seen.add(move)
-                        # otherwise can bear off any piece within the roll, although next closest piece is ideally the best to bear off
-                        else:
-                            for point in range(die - 1, -1, -1):
-                                if self.state.board[point] < 0:
-                                    move = (point, 27, die)
-                                    if move not in seen:
-                                        valid_moves.append(move)
-                                        seen.add(move)
                 return valid_moves
             else:
                 valid_moves = []
@@ -185,14 +170,6 @@ class Gammon:
                             if to_point >= 0 and self.state.board[to_point] <= 1 and move not in seen:  
                                 valid_moves.append(move)
                                 seen.add(move)
-                            # # also check sum of both dice
-                            # first_point = from_point - roll[0]
-                            # to_point = from_point - sum(roll)
-                            # move = (from_point, to_point)
-                            # if (to_point >= 0 and self.state.board[first_point] <= 1
-                            # and self.state.board[to_point] <= 1 and move not in seen):
-                            #     valid_moves.append(move)
-                            #     seen.add(move)
                 return valid_moves
         else:
             raise ValueError('Invalid player')
