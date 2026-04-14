@@ -89,18 +89,22 @@ class Gammon:
                             return valid_moves
                         for point in home_pieces:
                             to_point = point + die
-                            if to_point < 24:
+                            if to_point < 24 and self.state.board[to_point] >= -1:
                                 # Move forward within home board
                                 move = (point, to_point, die)
-                            else:
-                                # If overshoot only bear off farthest piece
-                                if point == min(home_pieces):
-                                    move = (point, 26, die)
-                                else:
-                                    continue
-                            if move not in seen:
-                                valid_moves.append(move)
-                                seen.add(move)
+                                if move not in seen:
+                                    valid_moves.append(move)
+                                    seen.add(move)
+                                # break if forward move not found
+                                break
+                        else:
+                            # If no forward move possible allow piece to overshoot and bear off
+                            if home_pieces:
+                                point = min(home_pieces)
+                                move = (point, 26, die)
+                                if move not in seen:
+                                    valid_moves.append(move)
+                                    seen.add(move)
                 return valid_moves
             
             # Otherwise generate valid moves based on the current board state and dice rolls
@@ -138,23 +142,26 @@ class Gammon:
                             seen.add(move)
                     else:
                         # find the highest occupied point which is max point number for player 2
-                        home_pieces = [p for p in range(6) if self.state.board[p] < 0]
+                        home_pieces = [p for p in range(5, -1, -1) if self.state.board[p] < 0]
                         # guard for when no pieces are left at home board return empty list gracefully
                         if not home_pieces:
                             return valid_moves
                         for point in home_pieces:
                             to_point = point - die
-                            if to_point >= 0:
+                            if to_point >= 0 and self.state.board[to_point] <= 1:
                                 # Must move forward on board
                                 move = (point, to_point, die)
-                            else:
-                                if point == max(home_pieces):
-                                    move = (point, 27, die)
-                                else:
-                                    continue
-                            if move not in seen:
-                                valid_moves.append(move)
-                                seen.add(move)
+                                if move not in seen:
+                                    valid_moves.append(move)
+                                    seen.add(move)
+                                break
+                        else:
+                            if home_pieces:
+                                point = max(home_pieces)
+                                move = (point, 27, die)
+                                if move not in seen:
+                                    valid_moves.append(move)
+                                    seen.add(move)
                 return valid_moves
             else:
                 valid_moves = []
