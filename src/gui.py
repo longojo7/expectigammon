@@ -545,27 +545,29 @@ class GUI:
             self.valid_moves = []
 
     def run(self):
+        # Main game loop which runs at 30 fps
         while True:
             self.clock.tick(30)
             self.draw()
-
             for event in pygame.event.get():
+                # Quit if window is closed
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     sys.exit()
-
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     mx, my = event.pos
 
+                    # New game button resets everything but keeps the mode
                     if self.ng_rect.collidepoint(mx, my):
-                        # Reset the game state but keep the mode
                         self.__init__(mode=self.mode)  
                         continue
 
+                    # Main action button which is next turn or roll dice depending on mode and turn
                     if self.btn_rect.collidepoint(mx, my) and not self.winner:
                         if self.mode == "ai_vs_ai":
                             self.ai_turn()
                         else:
+                            # Even turns are human (white), odd turns are AI (black)
                             if self.turn % 2 == 0:
                                 if not self.waiting_human:
                                     self.start_human_turn()
@@ -574,6 +576,7 @@ class GUI:
                                     self.ai_turn()
                         continue
 
+                    # Handle human piece selection and movement clicks
                     if self.mode == "human_vs_ai" and self.waiting_human:
                         idx = self.get_clicked_point(mx, my)
                         if idx is not None:

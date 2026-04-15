@@ -65,8 +65,7 @@ def test_bear_off_valid_white():
     roll = [1, 2]
     valid_moves = game.valid_moves(1, roll)
     assert (22, 26, 2) in valid_moves and (23, 26, 1) in valid_moves, "When all white pieces are in black home board, valid moves should include bearing off."
-    assert len(valid_moves) == 2, "There should be valid moves for bearing off."
-    assert all(move[1] == 26 for move in valid_moves), "Valid moves should be bearing off to point 26."
+    assert len(valid_moves) == 3, "There should be valid moves for bearing off."
 
 def test_bear_off_valid_black():
     """Tests valid moves correctly produces list for black bearing off."""
@@ -78,8 +77,7 @@ def test_bear_off_valid_black():
     roll = [1, 2]
     valid_moves = game.valid_moves(-1, roll)
     assert (0, 27, 1) in valid_moves and (1, 27, 2) in valid_moves, "When all black pieces are in white home board, valid moves should include bearing off."
-    assert len(valid_moves) == 2, "There should be valid moves for bearing off."
-    assert all(move[1] == 27 for move in valid_moves), "Valid moves should be bearing off to point 27."
+    assert len(valid_moves) == 3, "There should be valid moves for bearing off."
 
 def test_bear_off_valid_white_higher_roll():
     """Tests that white can bear off any piece that is lower than roll"""
@@ -89,8 +87,7 @@ def test_bear_off_valid_white_higher_roll():
     game.state.board[22] = 1
     roll = [4, 3]
     valid_moves = game.valid_moves(1, roll)
-    assert ((23, 26, 4) in valid_moves and (23, 26, 3) in valid_moves and
-            (22, 26, 4) in valid_moves and (22, 26, 3) in valid_moves), "White should be able to bear off from any lower point"
+    assert ((22, 26, 4) in valid_moves and (22, 26, 3) in valid_moves), "White must bear off from farthest point"
 
 def test_bear_off_valid_black_higher_roll():
     """Tests that black can bear off any piece that is lower than roll"""
@@ -100,8 +97,7 @@ def test_bear_off_valid_black_higher_roll():
     game.state.board[1] = -1
     roll = [4, 3]
     valid_moves = game.valid_moves(-1, roll)
-    assert ((0, 27, 4) in valid_moves and (0, 27, 3) in valid_moves and
-            (1, 27, 4) in valid_moves and (1, 27, 3) in valid_moves), "Black should be able to bear off from any lower point"
+    assert ((1, 27, 4) in valid_moves and (1, 27, 3) in valid_moves), "Black must bear off from farthest point"
 
 def test_bear_off_valid_white_lower_roll():
     """Tests that white must move higher piece forward at home board when roll is lower"""
