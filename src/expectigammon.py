@@ -236,7 +236,9 @@ class Player:
         # Calculate pip disparity to determine stuck penalty
         white_pip = sum((24 - i) * state[i] for i in range(24) if state[i] > 0)
         black_pip = sum((i + 1) * abs(state[i]) for i in range(24) if state[i] < 0)
-        stuck_penalty = 8 if (black_pip - white_pip) < -30 else 3
+        difference = black_pip - white_pip
+        white_stuck_penalty = 8 if difference > 20 else (5 if difference > 10 else 3)
+        black_stuck_penalty = 8 if difference < -20 else (5 if difference < -10 else 3)
 
         # Single pass over all 24 points
         for i in range(24):
@@ -246,7 +248,7 @@ class Player:
                 # bonus for white pieces in home board
                 heuristic += home_bonus * state[i] if i >= 18 else 0
                 # penalize white pieces stuck deep in black's home board
-                heuristic -= stuck_penalty * state[i] if i < 6 else 0
+                heuristic -= white_stuck_penalty * state[i] if i < 6 else 0
                 if state[i] == 1:
                     # count black stacked pieces within hitting range of 6
                     threat = sum(1 for j in range(max(0, i - 6), i) if state[j] < -1)
@@ -257,7 +259,7 @@ class Player:
             elif state[i] < 0:
                 heuristic -= pip_weight * (i + 1) * state[i]
                 heuristic -= home_bonus * abs(state[i]) if i < 6 else 0
-                heuristic += stuck_penalty * abs(state[i]) if i >= 18 else 0
+                heuristic += black_stuck_penalty * abs(state[i]) if i >= 18 else 0
                 if state[i] == -1:
                     threat = sum(1 for j in range(i + 1, min(24, i + 7)) if state[j] > 1)
                     danger = (2 if i >= 18 else 1) * (1 + threat)
