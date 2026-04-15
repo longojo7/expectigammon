@@ -304,7 +304,7 @@ def play_game(player1: Player, player2: Player, depth=2, moves_cap=5, print_move
         if print_moves:
             print(f"Rolled:        {current_p.current_roll}")
             if current_p.current_move:
-                display_score = current_p.current_score if current_p.player_number == 1 else (-current_p.current_score is not None else None)
+                display_score = current_p.current_score if current_p.player_number == 1 else (-current_p.current_score if current_p.current_score is not None else None)
                 print(f"Best move:     {current_p.current_move}")
                 print(f"Move score:    {display_score:.2f}")
             print(game.state)

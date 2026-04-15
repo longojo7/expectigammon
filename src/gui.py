@@ -474,7 +474,7 @@ class GUI:
         # Update display info
         self.last_roll = current_p.current_roll
         if current_p.player_number == -1:
-            self.last_score = -current_p.current_score
+            self.last_score = -current_p.current_score if current_p.current_score is not None else None
         else:
             self.last_score = current_p.current_score
         self.turn += 1
