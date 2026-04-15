@@ -219,7 +219,7 @@ class Player:
             return total_expected
 
     def h(self, game: Gammon):
-        """Heuristic function."""
+        """The final iteration of the heuristic."""
         if game.game_over():
             return float("inf") * self.player_number
         # Initiailze heuristic
