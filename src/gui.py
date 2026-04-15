@@ -473,7 +473,10 @@ class GUI:
 
         # Update display info
         self.last_roll = current_p.current_roll
-        self.last_score = current_p.current_score
+        if current_p.player_number == -1:
+            self.last_score = -current_p.current_score
+        else:
+            self.last_score = current_p.current_score
         self.turn += 1
         self.winner = self.game.check_winner() or None
 
