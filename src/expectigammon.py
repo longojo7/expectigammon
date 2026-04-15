@@ -228,7 +228,7 @@ class Player:
         # Weights
         pip_weight = 2
         blot_penalty = 5
-        bar_penalty = 10
+        bar_penalty = 20
         prime_bonus = 3
         home_bonus = 2
         bearoff_bonus = 10
@@ -238,15 +238,21 @@ class Player:
         black_pip = sum((i + 1) * abs(state[i]) for i in range(24) if state[i] < 0)
         stuck_penalty = 8 if (black_pip - white_pip) < -30 else 3
 
-        # Handles pip count, blots, home bonus, and stuck penalty
+        # Single pass over all 24 points
         for i in range(24):
             if state[i] > 0:
+                # pip count penalty
                 heuristic -= pip_weight * (24 - i) * state[i]
+                # bonus for white pieces in home board
                 heuristic += home_bonus * state[i] if i >= 18 else 0
+                # penalize white pieces stuck deep in black's home board
                 heuristic -= stuck_penalty * state[i] if i < 6 else 0
                 if state[i] == 1:
+                    # count black stacked pieces within hitting range of 6
                     threat = sum(1 for j in range(max(0, i - 6), i) if state[j] < -1)
+                    # scale for danger 
                     danger = (2 if i < 6 else 1) * (1 + threat)
+                    # Penalize blot depending how dangerous its position is
                     heuristic -= blot_penalty * danger
             elif state[i] < 0:
                 heuristic -= pip_weight * (i + 1) * state[i]
