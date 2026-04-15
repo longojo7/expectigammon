@@ -75,29 +75,37 @@ class Gammon:
                 valid_moves = []
                 # have to track seen moves for doubles
                 seen = set()
+                # Check all the points that have pieces in player 1's home board
+                home_pieces = [p for p in range(18, 24) if self.state.board[p] > 0]
+                if not home_pieces:
+                    return valid_moves
                 for die in roll:
-                    # check if there is a piece at the point corresponding to roll
+                    # Check if there is a piece at the point corresponding to roll
                     if self.state.board[24 - die] > 0:
                         move = (24 - die, 26, die)
                         if move not in seen:
                             valid_moves.append(move)
                             seen.add(move)
-                    else:
-                        # No exact match so allow any piece to move forward or bear off with overshoot
-                        home_pieces = [p for p in range(18, 24) if self.state.board[p] > 0]
-                        if not home_pieces:
-                            return valid_moves
-                        for point in home_pieces:
-                            to_point = point + die
-                            if to_point < 24:
-                                # Move forward within home board
-                                move = (point, to_point, die)
-                            else:
-                                # If overshoot only bear off farthest piece
-                                if point == min(home_pieces):
-                                    move = (point, 26, die)
-                                else:
-                                    continue
+                    # Also allow any piece to move forward if it is a legal move even if you can bear off
+                    # Set a boolean values to forward move to represent if a forward move has been found
+                    forward_move = False
+                    for point in home_pieces:
+                        to_point = point + die
+                        if to_point < 24 and self.state.board[to_point] >= -1:
+                            # Move forward within home board
+                            move = (point, to_point, die)
+                            if move not in seen:
+                                valid_moves.append(move)
+                                seen.add(move)
+                            # True if forward move is found otherwise it will stay false
+                            forward_move = True
+                    # Handle if the die number is more than any other piece's length to bearing off
+                    # This could only happen if there is no exact bear off move and no legal forward move possible
+                    if not forward_move and self.state.board[24 - die] == 0:
+                        # If no forward move possible allow piece to overshoot and bear off
+                        if home_pieces:
+                            point = min(home_pieces)
+                            move = (point, 26, die)
                             if move not in seen:
                                 valid_moves.append(move)
                                 seen.add(move)
@@ -130,28 +138,32 @@ class Gammon:
                 valid_moves = []
                 # have to track seen moves when doubles are rolled
                 seen = set()
+                # find the home pieces for player 2
+                home_pieces = [p for p in range(5, -1, -1) if self.state.board[p] < 0]
+                # guard for when no pieces are left at home board return empty list gracefully
+                if not home_pieces:
+                    return valid_moves
                 for die in roll:
                     if self.state.board[die - 1] < 0:
                         move = (die - 1, 27, die)
                         if move not in seen:
                             valid_moves.append(move)
                             seen.add(move)
-                    else:
-                        # find the highest occupied point which is max point number for player 2
-                        home_pieces = [p for p in range(6) if self.state.board[p] < 0]
-                        # guard for when no pieces are left at home board return empty list gracefully
-                        if not home_pieces:
-                            return valid_moves
-                        for point in home_pieces:
-                            to_point = point - die
-                            if to_point >= 0:
-                                # Must move forward on board
-                                move = (point, to_point, die)
-                            else:
-                                if point == max(home_pieces):
-                                    move = (point, 27, die)
-                                else:
-                                    continue
+                    # Check for all legal forward moves
+                    forward_move = False
+                    for point in home_pieces:
+                        to_point = point - die
+                        if to_point >= 0 and self.state.board[to_point] <= 1:
+                            # Must move forward on board
+                            move = (point, to_point, die)
+                            if move not in seen:
+                                valid_moves.append(move)
+                                seen.add(move)
+                            forward_move = True
+                    if not forward_move and self.state.board[die - 1] == 0:
+                        if home_pieces:
+                            point = max(home_pieces)
+                            move = (point, 27, die)
                             if move not in seen:
                                 valid_moves.append(move)
                                 seen.add(move)
@@ -231,7 +243,6 @@ def main():
     game.make_move(game.state.turn, valid_moves[0][0], valid_moves[0][1], roll)
     print("New game state:")
     print(repr(game.game_state()))
-
 if __name__ == "__main__":
     main()
     

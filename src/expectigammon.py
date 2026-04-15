@@ -219,60 +219,61 @@ class Player:
             return total_expected
 
     def h(self, game: Gammon):
+        """The final iteration of the heuristic."""
         if game.game_over():
             return float("inf") * self.player_number
-        
-        # Initialize heuristic score and get board state
+        # Initiailze heuristic
         heuristic = 0
         state = game.state.board
-
-        # set weights for heuristic features (we can tune these based on performance)
-        pip_weight = 1
-        blot_penalty = 3
-        bar_penalty = 7
+        # Weights
+        pip_weight = 2
+        blot_penalty = 5
+        bar_penalty = 20
         prime_bonus = 3
         home_bonus = 2
         bearoff_bonus = 10
 
-        # Apply pip count weight for distance to bearing off 
-        for i in range(0, 24):
+        # Calculate pip disparity to determine stuck penalty
+        white_pip = sum((24 - i) * state[i] for i in range(24) if state[i] > 0)
+        black_pip = sum((i + 1) * abs(state[i]) for i in range(24) if state[i] < 0)
+        stuck_penalty = 8 if (black_pip - white_pip) < -30 else 3
+
+        # Single pass over all 24 points
+        for i in range(24):
             if state[i] > 0:
+                # pip count penalty
                 heuristic -= pip_weight * (24 - i) * state[i]
-            else:
+                # bonus for white pieces in home board
+                heuristic += home_bonus * state[i] if i >= 18 else 0
+                # penalize white pieces stuck deep in black's home board
+                heuristic -= stuck_penalty * state[i] if i < 6 else 0
+                if state[i] == 1:
+                    # count black stacked pieces within hitting range of 6
+                    threat = sum(1 for j in range(max(0, i - 6), i) if state[j] < -1)
+                    # scale for danger 
+                    danger = (2 if i < 6 else 1) * (1 + threat)
+                    # Penalize blot depending how dangerous its position is
+                    heuristic -= blot_penalty * danger
+            elif state[i] < 0:
                 heuristic -= pip_weight * (i + 1) * state[i]
+                heuristic -= home_bonus * abs(state[i]) if i < 6 else 0
+                heuristic += stuck_penalty * abs(state[i]) if i >= 18 else 0
+                if state[i] == -1:
+                    threat = sum(1 for j in range(i + 1, min(24, i + 7)) if state[j] > 1)
+                    danger = (2 if i >= 18 else 1) * (1 + threat)
+                    heuristic += blot_penalty * danger
 
-        # Penalty for blots
-        for i in range(0, 24):
-            if state[i] == 1:
-                # More dangerous if blot is on opponent home board
-                danger = 2 if i < 6 else 1  
-                heuristic -= blot_penalty * danger
-            elif state[i] == -1:
-                danger = 2 if i >= 18 else 1
-                heuristic += blot_penalty * danger
-
-        # Heavy penalty for pieces on the bar
-        heuristic -= bar_penalty * state[24]
-        heuristic += bar_penalty * state[25]
-
-        # Apply bonus for primes or when you have consecutive points blocked off
-        for i in range(23):
-            if state[i] > 1 and state[i+1] > 1:
+        # Apply prime bonus if consecutive blocked points in home board
+        for i in range(18, 23):
+            if state[i] > 1 and state[i + 1] > 1:
                 heuristic += prime_bonus
-            elif state[i] < -1 and state[i+1] < -1:
+        for i in range(0, 5):
+            if state[i] < -1 and state[i + 1] < -1:
                 heuristic -= prime_bonus
 
-        # Apply bonus for pieces in home board for player 1
-        for i in range(18, 24):
-            if state[i] > 0:
-                heuristic += home_bonus * state[i]
-                
-        # Penalize for pieces in home board for player 2
-        for i in range(0, 6):
-            if state[i] < 0:
-                heuristic -= home_bonus * abs(state[i])
-
-        # Apply bonus for pieces borne off
+        # Bar and bearoff
+        heuristic -= bar_penalty * state[24]
+        heuristic += bar_penalty * state[25]
         heuristic += bearoff_bonus * state[26]
         heuristic -= bearoff_bonus * state[27]
 
@@ -317,45 +318,31 @@ def play_game(player1: Player, player2: Player, depth=2, moves_cap=5, print_move
     # stop timer and print elapsed time
     elapsed = time.time() - start
     print(f"Game completed in {elapsed:.2f}s after {turn} turns.")
-    return winner
+    return winner, turn, elapsed
+
+def simulate(n_games=50, depth=1, moves_cap=5):
+    p1_wins = 0
+    total_turns = 0
+    total_time = 0
+    for _ in range(n_games):
+        player1 = Player(1)
+        player2 = Player(-1)
+        winner, turn, elapsed = play_game(player1, player2, depth=depth, moves_cap=moves_cap, print_moves=False)
+        if winner == 1:
+            p1_wins += 1
+        total_turns += turn
+        total_time += elapsed
+        # Increment total nodes visited and pruned
+        total_nodes_visited = player1.nodes_visited + player2.nodes_visited
+        total_nodes_pruned = player1.nodes_pruned + player2.nodes_pruned
+    print(f"P1 win rate: {p1_wins/n_games:.2%}")
+    print(f"Avg turns: {total_turns/n_games:.1f}")
+    print(f"Avg time: {total_time/n_games:.1f}s")
+    print(f"Avg nodes visited: {total_nodes_visited/n_games:.2f}")
+    print(f"Avg nodes pruned: {total_nodes_pruned/n_games:.2f}")
 
 def main():
-    # Simulate a whole game
-    game = Gammon()
-    player1 = Player(1)
-    player2 = Player(-1)
-    play_game(player1, player2, depth=2, moves_cap=5, print_moves=True)
-
-    # print("Initial board state:")
-    # print(game.state)
-    # Iniitialze depth and moves cap
-    # depth = 2
-    # moves_cap = 5
-    # print(f"Evaluating position at depth={depth}")
-    # score = player1.expectiminimax(game, depth=depth)
-    # print(f"Position score for player 1: {score:.4f}")
-    # print(f"Nodes visited (eval): {player1.nodes_visited}")
-    # print(f"Nodes pruned  (eval): {player1.nodes_pruned}")
-
-    # Reset before take_turn so we get isolated stats for the turn
-    # player1.nodes_visited = 0
-    # player1.nodes_pruned = 0
-
-    # print(f"Player 1 taking turn at depth={depth}")
-    # start = time.time()
-    # player1.take_turn(game, depth=depth, moves_cap=moves_cap)
-    # elapsed = time.time() - start
-
-    # print(f"Rolled:        {player1.current_roll}")
-    # print(f"Best move:     {player1.current_move}")
-    # print(f"Move score:    {player1.current_score:.2f}")
-    # print(f"Time:          {elapsed:.2f}s")
-    # print(f"Nodes visited: {player1.nodes_visited}")
-    # print(f"Nodes pruned:  {player1.nodes_pruned}")
-    # print(f"Score moveset calls: {player1.score_move_call}")
-
-    # print("\nBoard state after player 1's move:")
-    # print(game.state)
-
+    # Simulate a whole game for collecting results
+    simulate(n_games=10, depth=1)
 if __name__ == "__main__":
     main()
