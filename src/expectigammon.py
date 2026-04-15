@@ -332,48 +332,17 @@ def simulate(n_games=50, depth=1, moves_cap=5):
             p1_wins += 1
         total_turns += turn
         total_time += elapsed
+        # Increment total nodes visited and pruned
+        total_nodes_visited = player1.nodes_visited + player2.nodes_visited
+        total_nodes_pruned = player1.nodes_pruned + player2.nodes_pruned
     print(f"P1 win rate: {p1_wins/n_games:.2%}")
     print(f"Avg turns: {total_turns/n_games:.1f}")
     print(f"Avg time: {total_time/n_games:.1f}s")
+    print(f"Avg nodes visited: {total_nodes_visited/n_games:.2f}")
+    print(f"Avg nodes pruned: {total_nodes_pruned/n_games:.2f}")
 
 def main():
-    # Simulate a whole game
-    game = Gammon()
-    player1 = Player(1)
-    player2 = Player(-1)
-    # play_game(player1, player2, depth=1, moves_cap=10, print_moves=True)
-    simulate(n_games=50)
-
-    # print("Initial board state:")
-    # print(game.state)
-    # Iniitialze depth and moves cap
-    # depth = 2
-    # moves_cap = 5
-    # print(f"Evaluating position at depth={depth}")
-    # score = player1.expectiminimax(game, depth=depth)
-    # print(f"Position score for player 1: {score:.4f}")
-    # print(f"Nodes visited (eval): {player1.nodes_visited}")
-    # print(f"Nodes pruned  (eval): {player1.nodes_pruned}")
-
-    # Reset before take_turn so we get isolated stats for the turn
-    # player1.nodes_visited = 0
-    # player1.nodes_pruned = 0
-
-    # print(f"Player 1 taking turn at depth={depth}")
-    # start = time.time()
-    # player1.take_turn(game, depth=depth, moves_cap=moves_cap)
-    # elapsed = time.time() - start
-
-    # print(f"Rolled:        {player1.current_roll}")
-    # print(f"Best move:     {player1.current_move}")
-    # print(f"Move score:    {player1.current_score:.2f}")
-    # print(f"Time:          {elapsed:.2f}s")
-    # print(f"Nodes visited: {player1.nodes_visited}")
-    # print(f"Nodes pruned:  {player1.nodes_pruned}")
-    # print(f"Score moveset calls: {player1.score_move_call}")
-
-    # print("\nBoard state after player 1's move:")
-    # print(game.state)
-
+    # Simulate a whole game for collecting results
+    simulate(n_games=10, depth=1)
 if __name__ == "__main__":
     main()

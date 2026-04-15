@@ -243,7 +243,6 @@ def main():
     game.make_move(game.state.turn, valid_moves[0][0], valid_moves[0][1], roll)
     print("New game state:")
     print(repr(game.game_state()))
-
 if __name__ == "__main__":
     main()
     

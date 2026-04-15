@@ -576,15 +576,14 @@ class GUI:
                         if idx is not None:
                             self.handle_human_click(idx)
 
-
 def main():
+    # Terminal prints prompting user to pick mode
     print("Select mode for Expectigammon:")
     print("1 — AI vs AI")
     print("2 — Human vs AI")
     choice = input("Enter 1 or 2: ").strip()
     mode = "human_vs_ai" if choice == "2" else "ai_vs_ai"
+    # Run the game
     GUI(mode).run()
-
-
 if __name__ == "__main__":
     main()
