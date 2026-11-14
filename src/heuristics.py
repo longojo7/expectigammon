@@ -8,7 +8,7 @@ from src.gammon import Gammon
 def h1(self, game):
     """The original heuristic which is very basic."""
     if game.game_over():
-        return float("inf") * self.player_number
+        return float("inf") * game.check_winner() * self.player_number
     heuristic = 0
     state = game.state.board
     # Total distance to travel
@@ -34,7 +34,7 @@ def h1(self, game):
 def h2(self, game: Gammon):
     """The second iteration of our heuristic function."""
     if game.game_over():
-        return float("inf") * self.player_number
+        return float("inf") * game.check_winner() * self.player_number
     
     # Initialize heuristic score and get board state
     heuristic = 0
@@ -95,7 +95,7 @@ def h2(self, game: Gammon):
 def h3(self, game: Gammon):
     """The final iteration of the heuristic."""
     if game.game_over():
-        return float("inf") * self.player_number
+        return float("inf") * game.check_winner() * self.player_number
     # Initiailze heuristic
     heuristic = 0
     state = game.state.board

@@ -221,7 +221,7 @@ class Player:
     def h(self, game: Gammon):
         """The final iteration of the heuristic."""
         if game.game_over():
-            return float("inf") * self.player_number
+            return float("inf") * game.check_winner() * self.player_number
         # Initiailze heuristic
         heuristic = 0
         state = game.state.board
