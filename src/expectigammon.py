@@ -226,7 +226,7 @@ class Player:
         heuristic = 0
         state = game.state.board
         # Weights
-        pip_weight = 2
+        pip_weight = 1
         blot_penalty = 5
         bar_penalty = 20
         prime_bonus = 3
@@ -234,8 +234,8 @@ class Player:
         bearoff_bonus = 10
 
         # Calculate pip disparity to determine stuck penalty
-        white_pip = sum((24 - i) * state[i] for i in range(24) if state[i] > 0)
-        black_pip = sum((i + 1) * abs(state[i]) for i in range(24) if state[i] < 0)
+        white_pip = sum((24 - i) * state[i] for i in range(24) if state[i] > 0) + 25 * state[24]
+        black_pip = sum((i + 1) * abs(state[i]) for i in range(24) if state[i] < 0) + 25 * state[25]
         difference = black_pip - white_pip
         white_stuck_penalty = 8 if difference > 20 else (5 if difference > 10 else 3)
         black_stuck_penalty = 8 if difference < -20 else (5 if difference < -10 else 3)
@@ -250,8 +250,8 @@ class Player:
                 # penalize white pieces stuck deep in black's home board
                 heuristic -= white_stuck_penalty * state[i] if i < 6 else 0
                 if state[i] == 1:
-                    # count black stacked pieces within hitting range of 6
-                    threat = sum(1 for j in range(max(0, i - 6), i) if state[j] < -1)
+                    # count any black piece within hitting range of 6
+                    threat = sum(1 for j in range(i + 1, min(24, i + 7)) if state[j] < 0)
                     # scale for danger 
                     danger = (2 if i < 6 else 1) * (1 + threat)
                     # Penalize blot depending how dangerous its position is
@@ -261,7 +261,8 @@ class Player:
                 heuristic -= home_bonus * abs(state[i]) if i < 6 else 0
                 heuristic += black_stuck_penalty * abs(state[i]) if i >= 18 else 0
                 if state[i] == -1:
-                    threat = sum(1 for j in range(i + 1, min(24, i + 7)) if state[j] > 1)
+                    # Any white pieces within hitting range are a threat
+                    threat = sum(1 for j in range(max(0, i - 6), i) if state[j] > 0)
                     danger = (2 if i >= 18 else 1) * (1 + threat)
                     heuristic += blot_penalty * danger
 
@@ -276,6 +277,9 @@ class Player:
         # Bar and bearoff
         heuristic -= bar_penalty * state[24]
         heuristic += bar_penalty * state[25]
+        # Checkers on the bar still need 25 pips to bear off
+        heuristic -= pip_weight * 25 * state[24]
+        heuristic += pip_weight * 25 * state[25]
         heuristic += bearoff_bonus * state[26]
         heuristic -= bearoff_bonus * state[27]
 

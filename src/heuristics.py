@@ -28,6 +28,9 @@ def h1(self, game):
     bar_penalty = 5     
     heuristic -= bar_penalty * state[24]
     heuristic += bar_penalty * state[25]
+    # Checkers on the bar still need 25 pips to bear off
+    heuristic -= 25 * state[24]
+    heuristic += 25 * state[25]
     return heuristic * self.player_number
 
 
@@ -68,6 +71,9 @@ def h2(self, game: Gammon):
     # Heavy penalty for pieces on the bar
     heuristic -= bar_penalty * state[24]
     heuristic += bar_penalty * state[25]
+    # Checkers on the bar still need 25 pips to bear off
+    heuristic -= pip_weight * 25 * state[24]
+    heuristic += pip_weight * 25 * state[25]
 
     # Apply bonus for primes or when you have consecutive points blocked off
     for i in range(23):
@@ -100,7 +106,7 @@ def h3(self, game: Gammon):
     heuristic = 0
     state = game.state.board
     # Weights
-    pip_weight = 2
+    pip_weight = 1
     blot_penalty = 5
     bar_penalty = 10
     prime_bonus = 3
@@ -108,8 +114,8 @@ def h3(self, game: Gammon):
     bearoff_bonus = 10
 
     # Calculate pip disparity to determine stuck penalty
-    white_pip = sum((24 - i) * state[i] for i in range(24) if state[i] > 0)
-    black_pip = sum((i + 1) * abs(state[i]) for i in range(24) if state[i] < 0)
+    white_pip = sum((24 - i) * state[i] for i in range(24) if state[i] > 0) + 25 * state[24]
+    black_pip = sum((i + 1) * abs(state[i]) for i in range(24) if state[i] < 0) + 25 * state[25]
     stuck_penalty = 8 if (black_pip - white_pip) < -30 else 3
 
     # Handles pip count, blots, home bonus, and stuck penalty
@@ -119,7 +125,7 @@ def h3(self, game: Gammon):
             heuristic += home_bonus * state[i] if i >= 18 else 0
             heuristic -= stuck_penalty * state[i] if i < 6 else 0
             if state[i] == 1:
-                threat = sum(1 for j in range(max(0, i - 6), i) if state[j] < -1)
+                threat = sum(1 for j in range(i + 1, min(24, i + 7)) if state[j] < 0)
                 danger = (2 if i < 6 else 1) * (1 + threat)
                 heuristic -= blot_penalty * danger
         elif state[i] < 0:
@@ -127,7 +133,7 @@ def h3(self, game: Gammon):
             heuristic -= home_bonus * abs(state[i]) if i < 6 else 0
             heuristic += stuck_penalty * abs(state[i]) if i >= 18 else 0
             if state[i] == -1:
-                threat = sum(1 for j in range(i + 1, min(24, i + 7)) if state[j] > 1)
+                threat = sum(1 for j in range(max(0, i - 6), i) if state[j] > 0)
                 danger = (2 if i >= 18 else 1) * (1 + threat)
                 heuristic += blot_penalty * danger
 
@@ -142,6 +148,9 @@ def h3(self, game: Gammon):
     # Bar and bearoff
     heuristic -= bar_penalty * state[24]
     heuristic += bar_penalty * state[25]
+    # Checkers on the bar still need 25 pips to bear off
+    heuristic -= pip_weight * 25 * state[24]
+    heuristic += pip_weight * 25 * state[25]
     heuristic += bearoff_bonus * state[26]
     heuristic -= bearoff_bonus * state[27]
 
