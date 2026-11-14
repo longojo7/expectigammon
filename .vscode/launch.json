@@ -1,0 +1,21 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Simulation (expectigammon)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "src.expectigammon",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "GUI",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "src.gui",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal"
+    }
+  ]
+}

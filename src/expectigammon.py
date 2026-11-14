@@ -110,7 +110,7 @@ class Player:
         for moves in moveset:
             game_copy = game.copy()
             self.apply_moves(game_copy, moves, rolls, self.player_number)
-            move_expectation = self.expectiminimax(game_copy, depth, is_max_next=(self.player_number == -1), moves_cap=moves_cap)
+            move_expectation = self.expectiminimax(game_copy, depth, is_max_next=False, moves_cap=moves_cap)
             if move_expectation > best:
                 best = move_expectation
                 best_moves = moves
