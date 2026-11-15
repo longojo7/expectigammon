@@ -218,72 +218,79 @@ class Player:
 
             return total_expected
 
+    def player_view(self, state, color):
+        """Returns a list were the indexes represent the distance the given color is away from bearing off.
+        Index 0 is borne off pieces for mine, 1-24 is the points away, and 25 are pieces on the bar (this is for mine, opposite for theirs). 
+        Should help with pip counts, and standardizing heuristic calculations for both playes."""
+        mine = [0] * 26
+        theirs = [0] * 26
+        for i in range(24):
+            # THis is the only White/Black flip that is needed
+            dist = 24 - i if color == 1 else i + 1
+            if state[i] * color > 0:
+                mine[dist] = abs(state[i])
+            elif state[i] * color < 0:
+                theirs[dist] = abs(state[i])
+        # Handle bar and borne off
+        if color == 1:
+            mine[0], mine[25] = state[26], state[24]     # my borne off, then my bar
+            theirs[0], theirs[25] = state[25], state[27] # their bar, then their borne off 
+        else:
+            mine[0], mine[25] = state[27], state[25]
+            theirs[0], theirs[25] = state[24], state[26]
+        return mine, theirs
+
+    def side_score(self, mine, theirs, w):
+        """This takes the two lists from player view and a dictionary of weights
+        and returns the score or how good the position is for 'me' meaning a higher score is better for me"""
+        score = 0
+
+        # Calculate the pip counts to see who is winning the race. Bar counts as 25 pips, borne off as 0
+        my_pip = sum(d * mine[d] for d in range(26))
+        their_pip = sum((25 - d) * theirs[d] for d in range(26))
+        lead = their_pip - my_pip   # If positive that means I'm ahead
+        stuck = 8 if lead > 20 else (5 if lead > 10 else 3)
+        score -= w["pip"] * my_pip
+
+        # Board points only (skip slot 0 which is borne off, and slot 25 which is the bar)
+        for d in range(1, 25):
+            n = mine[d]
+            # Skip any empty points
+            if n == 0:
+                continue
+            # Add a bonus for pieces on my homeboard
+            if d <= 6:
+                score += w['home'] * n
+            # Subtract from score when my pieces are stuck on opponent homeboard
+            if d >= 19:
+                score -= stuck * n
+            if n == 1:
+                # Opponent checkers 1-6 points in front can hit it 
+                threat = sum(1 for i in range(max(0, d - 6), d) if theirs[i] > 0)   # Start at 0 to make bar pieces also a thread
+                danger = (2 if d >= 19 else 1) * (1 + threat)
+                score -= w['blot'] * danger
+
+        # Reward points next to each other that are made in home board (having 2 or more pieces on point is made)
+        for d in range(1, 6):
+            if mine[d] >= 2 and mine[d + 1] >= 2:
+                score += w["prime"]
+
+        # penalize checkers on the bar and reward checkers borne off
+        score -= w['bar'] * mine[25]
+        score += w['bearoff'] * mine[0]
+        return score
+
     def h(self, game: Gammon):
         """The final iteration of the heuristic."""
+        weights = {"pip": 1, "blot": 5, "bar": 20, "prime": 3, "home": 2, "bearoff": 10}
         if game.game_over():
             return float("inf") * game.check_winner() * self.player_number
-        # Initiailze heuristic
-        heuristic = 0
-        state = game.state.board
-        # Weights
-        pip_weight = 1
-        blot_penalty = 5
-        bar_penalty = 20
-        prime_bonus = 3
-        home_bonus = 2
-        bearoff_bonus = 10
-
-        # Calculate pip disparity to determine stuck penalty
-        white_pip = sum((24 - i) * state[i] for i in range(24) if state[i] > 0) + 25 * state[24]
-        black_pip = sum((i + 1) * abs(state[i]) for i in range(24) if state[i] < 0) + 25 * state[25]
-        difference = black_pip - white_pip
-        white_stuck_penalty = 8 if difference > 20 else (5 if difference > 10 else 3)
-        black_stuck_penalty = 8 if difference < -20 else (5 if difference < -10 else 3)
-
-        # Single pass over all 24 points
-        for i in range(24):
-            if state[i] > 0:
-                # pip count penalty
-                heuristic -= pip_weight * (24 - i) * state[i]
-                # bonus for white pieces in home board
-                heuristic += home_bonus * state[i] if i >= 18 else 0
-                # penalize white pieces stuck deep in black's home board
-                heuristic -= white_stuck_penalty * state[i] if i < 6 else 0
-                if state[i] == 1:
-                    # count any black piece within hitting range of 6
-                    threat = sum(1 for j in range(i + 1, min(24, i + 7)) if state[j] < 0)
-                    # scale for danger 
-                    danger = (2 if i < 6 else 1) * (1 + threat)
-                    # Penalize blot depending how dangerous its position is
-                    heuristic -= blot_penalty * danger
-            elif state[i] < 0:
-                heuristic -= pip_weight * (i + 1) * state[i]
-                heuristic -= home_bonus * abs(state[i]) if i < 6 else 0
-                heuristic += black_stuck_penalty * abs(state[i]) if i >= 18 else 0
-                if state[i] == -1:
-                    # Any white pieces within hitting range are a threat
-                    threat = sum(1 for j in range(max(0, i - 6), i) if state[j] > 0)
-                    danger = (2 if i >= 18 else 1) * (1 + threat)
-                    heuristic += blot_penalty * danger
-
-        # Apply prime bonus if consecutive blocked points in home board
-        for i in range(18, 23):
-            if state[i] > 1 and state[i + 1] > 1:
-                heuristic += prime_bonus
-        for i in range(0, 5):
-            if state[i] < -1 and state[i + 1] < -1:
-                heuristic -= prime_bonus
-
-        # Bar and bearoff
-        heuristic -= bar_penalty * state[24]
-        heuristic += bar_penalty * state[25]
-        # Checkers on the bar still need 25 pips to bear off
-        heuristic -= pip_weight * 25 * state[24]
-        heuristic += pip_weight * 25 * state[25]
-        heuristic += bearoff_bonus * state[26]
-        heuristic -= bearoff_bonus * state[27]
-
-        return heuristic * self.player_number
+        s = game.state.board
+        wmine, wtheirs = self.player_view(s, 1)
+        bmine, btheirs = self.player_view(s, -1)
+        white = self.side_score(wmine, wtheirs, weights)
+        black = self.side_score(bmine, btheirs, weights)
+        return (white - black) * self.player_number
 
 def play_game(player1: Player, player2: Player, depth=2, moves_cap=5, print_moves=False, turn_limit=80):
     # Create the game and initialize turn
